@@ -149,7 +149,7 @@ fn hash_len0to16(s: &[u8], len: usize) -> u64 {
     }
     if len >= 4 {
         let a: u64 = fetch32(s) as u64;
-        return hash_len16(len as u64 + (a << 3), fetch32(&s [( len  - 4)..] ) as u64);
+        return hash_len16(len as u64 + (a << 3), fetch32(&s[(len - 4)..]) as u64);
     }
     if len > 0 {
         let a = s[0];
@@ -157,7 +157,7 @@ fn hash_len0to16(s: &[u8], len: usize) -> u64 {
         let c = s[len - 1];
         let y: u32 = (a as u32) + ((b as u32) << 8);
         let z: u32 = len as u32 + ((c as u32) << 2);
-        return shift_mix(y as u64* K2 ^ z as u64 * K3) * K2;
+        return shift_mix(y as u64 * K2 ^ z as u64 * K3) * K2;
     }
 
     K2
@@ -176,6 +176,33 @@ fn hash_len17to32(s: &[u8], len: usize) -> u64 {
     )
 }
 
+/// Return a 16-byte hash for 48 bytes.  Quick and dirty.
+/// Callers do best to use "random-looking" values for a and b.
+pub fn weak_hash_len32_with_seeds6(w: u64, x: u64, y: u64, z: u64, a: u64, b: u64) -> Uint128 {
+    let mut a = a + w;
+    let mut b = rotate(b + a + z, 21);
+    let c = a;
+    a += x;
+    a += y;
+    b += rotate(a, 44);
+
+    Uint128 {
+        low: a + z,
+        high: b + c,
+    }
+}
+
+/// Return a 16-byte hash for s[0] ... s[31], a, and b.  Quick and dirty.
+pub fn weak_hash_len32_with_seeds(s: &[u8], a: u64, b: u64) -> Uint128 {
+    weak_hash_len32_with_seeds6(
+        fetch64(s),
+        fetch64(&s[8..]),
+        fetch64(&s[16..]),
+        fetch64(&s[24..]),
+        a,
+        b,
+    )
+}
 
 #[cfg(test)]
 mod tests {
@@ -190,28 +217,40 @@ mod tests {
 
     #[test]
     fn test_hash128to64_simple() {
-        let input = Uint128 { high: 12345678, low: 87654321 };
+        let input = Uint128 {
+            high: 12345678,
+            low: 87654321,
+        };
         let result = hash128to64(input);
         assert_eq!(result, 14224548779526731012);
     }
 
     #[test]
     fn test_hash128to64_max_values() {
-        let input = Uint128 { high: u64::MAX, low: u64::MAX };
+        let input = Uint128 {
+            high: u64::MAX,
+            low: u64::MAX,
+        };
         let result = hash128to64(input);
         assert_eq!(result, 17822925301445087585);
     }
 
     #[test]
     fn test_hash128to64_high_zero_low_max() {
-        let input = Uint128 { high: 0, low: u64::MAX };
+        let input = Uint128 {
+            high: 0,
+            low: u64::MAX,
+        };
         let result = hash128to64(input);
         assert_eq!(result, 11040400438045666811);
     }
 
     #[test]
     fn test_hash128to64_low_zero_high_max() {
-        let input = Uint128 { high: u64::MAX, low: 0 };
+        let input = Uint128 {
+            high: u64::MAX,
+            low: 0,
+        };
         let result = hash128to64(input);
         assert_eq!(result, 2920975488477388140);
     }
