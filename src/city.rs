@@ -25,7 +25,7 @@ const K1: u64 = 0xb492b66fbe98f273;
 const K2: u64 = 0x9ae16a3b2f90404f;
 const K3: u64 = 0xc949d7c7509e6557;
 
-struct Uint128 {
+pub struct Uint128 {
     low: u64,
     high: u64,
 }
@@ -71,7 +71,7 @@ fn hash128to64(x: Uint128) -> u64 {
     let k_mul: u64 = 0x9ddfea08eb382d69;
     let mut a: u64 = x.high ^ x.low * k_mul as u64;
     a ^= a >> 47;
-    let mut b: u128 = (x.high ^ a) * k_mul;
+    let mut b: u64 = (x.high ^ a) * k_mul;
     b ^= b >> 47;
     b *= k_mul;
     b
