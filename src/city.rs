@@ -204,6 +204,30 @@ pub fn weak_hash_len32_with_seeds(s: &[u8], a: u64, b: u64) -> Uint128 {
     )
 }
 
+/// Return an 8-byte hash for 33 to 64 bytes.
+fn hash_len33to64(s: &[u8], len: usize) -> u64 {
+    let mut z = fetch64(&s[24..]);
+    let mut a: u64 = fetch64(s) + (len as u64 + fetch64(&s[len - 16..])) * K0;
+    let mut b: u64 = rotate(a + z, 52);
+    let mut c: u64 = rotate(a, 37);
+    a += fetch64(&s[8..]);
+    c += rotate(a, 7);
+    a += fetch64(&s[16..]);
+    let vf: u64 = a + z;
+    let vs: u64 = b + rotate(a, 31) + c;
+    a = fetch64(&s[16..]) + fetch64(&s[len - 32..]);
+    z = fetch64(&s[len - 8..]);
+    b = rotate(a + z, 52);
+    c = rotate(a, 37);
+    a += fetch64(&s[len - 24..]);
+    c += rotate(a, 7);
+    a += fetch64(&s[len - 16..]);
+    let wf: u64 = a + z;
+    let ws: u64 = b + rotate(a, 31) + c;
+    let r: u64 = shift_mix((vf + ws) * K2 + (wf + vs) * K0);
+    shift_mix(r * K0 + vs) * K2
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
