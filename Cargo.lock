@@ -3,5 +3,21 @@
 version = 3
 
 [[package]]
+name = "libc"
+version = "0.2.161"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e9489c2807c139ffd9c1794f4af0ebe86a828db53ecdc7fea2111d0fed085d1"
+
+[[package]]
 name = "mica-rs"
 version = "0.1.0"
+dependencies = [
+ "libc",
+ "shm",
+]
+
+[[package]]
+name = "shm"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9bcf2a295d7181f36fe902cb6c4177033c007f0c6fd1d0cc90b517de0c2e53d1"

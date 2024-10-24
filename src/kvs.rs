@@ -19,17 +19,14 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-const MicaLogBits: u32 = 40;
-const MaxSlots: u32 = 8;
-
-struct MicaSlot {
-    tag: u32,
-    offseet: u64,
-    in_use: bool,
-}
+use crate::consts::{MAX_SLOTS, MICA_INDEX_SHM_KEY, MICA_LOG_BITS};
+use crate::numbers::M_16;
+use crate::op::MicaOp;
+use crate::slot::MicaSlot;
+use crate::utils::is_power_of_2;
 
 struct MicaBucket {
-    slots: [MicaSlot; MaxSlots],
+    slots: [MicaSlot; MAX_SLOTS],
 }
 
 struct MicaKV {
@@ -55,6 +52,25 @@ struct MicaKV {
     num_put_fail: u64,
     num_insert_op: u64,
     num_index_evictions: u64,
+}
+
+impl MicaKV {
+    pub fn new(instance_id: usize, node_id: usize, num_bkts: u32, log_cap: u64) -> Self {
+        // Structure size
+        assert_eq!(std::mem::size_of::<MicaSlot>(), 8);
+        // Structure alignment
+        assert_eq!(std::mem::size_of::<MicaOp>() % 64, 0);
+        assert!(node_id == 0 || node_id == 1);
+
+        // 16 million buckets = a 1GB index
+        assert!(is_power_of_2(num_bkts));
+        assert!(num_bkts <= M_16);
+
+        // Minimum log w_size = 16MB
+        assert!(MICA_LOG_BITS >= 24);
+
+        let ht_index_key = MICA_INDEX_SHM_KEY + instance_id;
+    }
 }
 
 /* kvs.rs ends here */

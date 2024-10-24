@@ -1,4 +1,4 @@
-/* lib.rs --- LIB
+/* seqlock.rs --- SEQLOCK
 
 *
 * Author: M.R.Siavash Katebzadeh <mr@katebzadeh.xyz>
@@ -19,14 +19,8 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-mod city;
-mod consts;
-mod numbers;
-mod op;
-mod seqlock;
-mod slot;
-mod utils;
+use std::sync::atomic::AtomicU64;
 
-pub mod kvs;
+pub(crate) type SeqLock = AtomicU64;
 
-/* lib.rs ends here */
+/* seqlock.rs ends here */

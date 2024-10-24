@@ -1,4 +1,4 @@
-/* lib.rs --- LIB
+/* slot.rs --- SLOT
 
 *
 * Author: M.R.Siavash Katebzadeh <mr@katebzadeh.xyz>
@@ -19,14 +19,28 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-mod city;
-mod consts;
-mod numbers;
-mod op;
-mod seqlock;
-mod slot;
-mod utils;
+use crate::consts::MICA_LOG_BITS;
 
-pub mod kvs;
+pub(crate) struct MicaSlot {
+    tag: u32,
+    offset: u64,
+    in_use: bool,
+}
 
-/* lib.rs ends here */
+impl MicaSlot {
+    pub(crate) fn new(in_use: u32, tag: u64, offset: u64) -> Self {
+        let in_use = in_use & 0b1;
+        let tag_mask = (1 << (64 - MICA_LOG_BITS - 1)) - 1;
+        let tag = tag & tag_mask;
+        let offset_mask = (1 << MICA_LOG_BITS) - 1;
+        let offset = offset & offset_mask;
+
+        MicaSlot {
+            in_use,
+            tag,
+            offset,
+        }
+    }
+}
+
+/* slot.rs ends here */

@@ -1,4 +1,4 @@
-/* lib.rs --- LIB
+/* op.rs --- OP
 
 *
 * Author: M.R.Siavash Katebzadeh <mr@katebzadeh.xyz>
@@ -19,14 +19,19 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-mod city;
-mod consts;
-mod numbers;
-mod op;
-mod seqlock;
-mod slot;
-mod utils;
+use crate::consts::{MICA_OP_PADDING_SIZE, MICA_VALUE_SIZE};
+use crate::seqlock::SeqLock;
 
-pub mod kvs;
+#[repr(C)]
+pub(crate) struct MicaOp {
+    value: [u8; MICA_VALUE_SIZE],
+    key: Key,
+    seqlock: SeqLock,
+    version: u64,
+    state: u8,
+    unused: [u8; 3],
+    key_id: u32, // strictly for debug
+    padding: [u8; MICA_OP_PADDING_SIZE],
+}
 
-/* lib.rs ends here */
+/* op.rs ends here */
