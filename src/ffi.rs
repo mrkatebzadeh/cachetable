@@ -1,4 +1,4 @@
-/* lib.rs --- LIB
+/* ffi.rs --- FFI
 
 *
 * Author: M.R.Siavash Katebzadeh <mr@katebzadeh.xyz>
@@ -19,6 +19,17 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-pub mod ffi;
+extern "C" {
+    pub fn mica_new(kvs_id: isize);
 
-/* lib.rs ends here */
+    pub fn mica_read(
+        kv_ptr: *mut MicaOp,
+        value_to_read: *mut uint8_t,
+        resp_type: *mut uint8_t,
+        t_id: uint16_t,
+    );
+
+    pub fn mica_write(kv_ptr: *mut MicaOp, value_to_write: *mut uint8_t);
+}
+
+/* ffi.rs ends here */

@@ -21,7 +21,7 @@
 
 #include "mica_c/kvs.h"
 
-void mica_local_read(mica_op_t *kv_ptr,
+void mica_read(mica_op_t *kv_ptr,
                                   uint8_t *value_to_read,
                                   uint8_t *resp_type,
 		    uint16_t t_id) {
@@ -30,5 +30,10 @@ void mica_local_read(mica_op_t *kv_ptr,
 
 void mica_write(mica_op_t *kv_ptr, uint8_t *value_to_write) {
 	KVS_write(kv_ptr,value_to_write);
+}
+
+
+void mica_new(int kvs_id) {
+	custom_mica_init(key_id);
 }
 /* wrapper.c ends here */
