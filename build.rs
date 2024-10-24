@@ -24,6 +24,7 @@ fn main() {
         .file("mica_c/kvs.c")
         .file("mica_c/hrd.c")
         .file("mica_c/city.c")
+        .include("/usr/include")
         .compile("libmica.a");
 }
 

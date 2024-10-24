@@ -29,6 +29,7 @@
 #define FIND_PADDING_CUST_ALIGN(size, align) ((align - (size % align)) % align)
 #define FIND_PADDING(size) ((64 - (size % 64)) % 64)
 #define unlikely(x)       __builtin_expect((x), 0)
+#define CEILING(x,y) (((x) + (y) - 1) / (y))
 
 #define KVS_NUM_BKTS (8 * 1024 * 1024)
 #define KVS_LOG_CAP  (1024 * 1024 * 1024)
@@ -53,7 +54,7 @@
 #define ENABLE_ASSERTIONS 1
 #define USE_HUGE_PAGES 0
 #define LEVERAGE_TLB_COALESCING 1
-
+#define HUGE_PAGE_SIZE 2097152
 #define KEY_SIZE 8
 
 
