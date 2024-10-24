@@ -26,6 +26,8 @@ fn main() {
         .file("mica_c/city.c")
         .include("/usr/include")
         .compile("libmica.a");
+
+    cc::Build::new().file("wrapper.c").compile("wrapper");
 }
 
 /* build.rs ends here */
