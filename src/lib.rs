@@ -19,14 +19,4 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-mod city;
-mod consts;
-mod numbers;
-mod op;
-mod seqlock;
-mod slot;
-mod utils;
-
-pub mod kvs;
-
 /* lib.rs ends here */
