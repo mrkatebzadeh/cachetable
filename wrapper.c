@@ -21,14 +21,14 @@
 
 #include "mica_c/kvs.h"
 
-void KVS_local_read(mica_op_t *kv_ptr,
+void mica_local_read(mica_op_t *kv_ptr,
                                   uint8_t *value_to_read,
                                   uint8_t *resp_type,
 		    uint16_t t_id) {
 	KVS_local_read(kv_ptr, value_to_read, resp_type,t_id);
 }
 
-void KVS_write(mica_op_t *kv_ptr, uint8_t *value_to_write) {
+void mica_write(mica_op_t *kv_ptr, uint8_t *value_to_write) {
 	KVS_write(kv_ptr,value_to_write);
 }
 /* wrapper.c ends here */

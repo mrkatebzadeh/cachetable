@@ -27,7 +27,12 @@ fn main() {
         .include("/usr/include")
         .compile("libmica.a");
 
-    cc::Build::new().file("wrapper.c").compile("wrapper");
+    cc::Build::new()
+        .file("wrapper.c")
+        .include("/usr/include")
+        .compile("wrapper");
+
+    println!("cargo:rustc-link-lib=static=wrapper");
 }
 
 /* build.rs ends here */
