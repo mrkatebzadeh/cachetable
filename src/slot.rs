@@ -21,24 +21,12 @@
 
 use bitvec::prelude as bv;
 
-/*
-#define MICA_LOG_BITS 40
-*/
-
-const MICA_LOG_BITS: usize = 40;
+pub(crate) const MICA_LOG_BITS: usize = 40;
 const SLOT_SIZE: usize = 64;
-
-/*
-struct mica_slot {
-    uint32_t in_use	:1;
-    uint32_t tag	:(SLOT_SIZE - MICA_LOG_BITS - 1);
-    uintSLOT_SIZE_t offset	:MICA_LOG_BITS;
-};
- */
 
 #[derive(Default, Clone, Copy)]
 pub(crate) struct Slot {
-    raw: uSLOT_SIZE,
+    raw: usize,
 }
 
 impl Slot {
@@ -51,14 +39,14 @@ impl Slot {
         self.raw = (self.raw & !(1 << (SLOT_SIZE - 1))) | (in_use_bit << (SLOT_SIZE - 1));
     }
 
-    pub(crate) fn set_tag(&mut self, tag: uSLOT_SIZE) {
+    pub(crate) fn set_tag(&mut self, tag: usize) {
         let tag_bits = SLOT_SIZE - MICA_LOG_BITS - 1;
         assert!(tag < (1 << tag_bits), "Tag is too large");
 
         self.raw = (self.raw & !((1 << (MICA_LOG_BITS)) - 1)) | (tag << MICA_LOG_BITS);
     }
 
-    pub(crate) fn set_offset(&mut self, offset: uSLOT_SIZE) {
+    pub(crate) fn set_offset(&mut self, offset: usize) {
         assert!(offset < (1 << MICA_LOG_BITS), "Offset is too large");
         self.raw = (self.raw & !((1 << MICA_LOG_BITS) - 1)) | offset;
     }
@@ -67,11 +55,11 @@ impl Slot {
         (self.raw >> (SLOT_SIZE - 1)) & 1 == 1
     }
 
-    pub(crate) fn tag(&self) -> uSLOT_SIZE {
+    pub(crate) fn tag(&self) -> usize {
         (self.raw >> MICA_LOG_BITS) & ((1 << (SLOT_SIZE - MICA_LOG_BITS - 1)) - 1)
     }
 
-    pub(crate) fn offset(&self) -> uSLOT_SIZE {
+    pub(crate) fn offset(&self) -> usize {
         self.raw & ((1 << MICA_LOG_BITS) - 1)
     }
 }

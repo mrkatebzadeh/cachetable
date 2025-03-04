@@ -19,7 +19,10 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+mod bucket;
+mod key;
 pub mod kvs;
+mod op;
 mod slot;
 
 /* lib.rs ends here */

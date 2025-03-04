@@ -19,7 +19,11 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use std::sync::atomic::AtomicU64;
+
 use crate::key::MicaKey;
+
+pub(crate) type SeqLock = AtomicU64;
 
 const fn find_padding_cust_align(size: usize, align: usize) -> usize {
     (align - (size % align)) % align
@@ -33,26 +37,10 @@ const MICA_OP_SIZE_: usize = 32 + MICA_VALUE_SIZE;
 const MICA_OP_PADDING_SIZE: usize = find_padding_cust_align(MICA_OP_SIZE_, 64);
 const MICA_OP_SIZE: usize = MICA_OP_SIZE_ + MICA_OP_PADDING_SIZE;
 
-/*
-struct mica_op {
-  uint8_t value[MICA_VALUE_SIZE];
-  struct key key;
-  seqlock_t seqlock;
-  uint64_t version;
-  uint8_t m_id;
-  uint8_t state;
-  uint8_t unused[2];
-  uint32_t key_id; // strictly for debug
-  uint8_t padding[MICA_OP_PADDING_SIZE];
-};
-
-
-*/
-
 pub(crate) struct MicaOp {
     value: [u8; MICA_VALUE_SIZE],
     key: MicaKey,
-    seqlock: u32, // todo: fixme
+    seqlock: SeqLock,
     version: u64,
     m_id: u8,
     state: u8,
@@ -85,7 +73,7 @@ impl MicaOpBuilder {
         MicaOp {
             value: [0; MICA_VALUE_SIZE],
             key: MicaKey::default(),
-            seqlock: 0,
+            seqlock: SeqLock::new(0),
             version: 0,
             m_id: 0,
             state: 0,

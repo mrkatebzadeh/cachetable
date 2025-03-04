@@ -19,15 +19,6 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/*
-
-struct mica_bkt {
-    struct mica_slot slots[8];
-};
-
-
- */
-
 use crate::slot::Slot;
 
 const BUCKET_SIZE: usize = 8;
