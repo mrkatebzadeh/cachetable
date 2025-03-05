@@ -30,7 +30,7 @@ use std::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
-const MICA_INDEX_SHM_KEY: usize = 1185;
+const MICA_INDEX_SHM_KEY: usize = 1186;
 const MICA_LOG_SHM_KEY: usize = 2185;
 
 pub struct MicaKVS {
@@ -212,14 +212,19 @@ impl MicaBuilder {
         let ht_index = SharedMemory::<MicaBucket>::new(
             ht_index_key,
             self.num_bkts as usize * size_of::<MicaBucket>(),
-            true,
+            false, //hugepages
             self.node_id,
         )
         .expect("Failed to allocate shared memory for buckets.");
 
         let ht_log_key = MICA_LOG_SHM_KEY as i32 + self.instance_id;
-        let ht_log = SharedMemory::<u8>::new(ht_log_key, self.log_cap as usize, true, self.node_id)
-            .expect("Failed to allocate shared memory for log.");
+        let ht_log = SharedMemory::<u8>::new(
+            ht_log_key,
+            self.log_cap as usize,
+            false, //hugepages
+            self.node_id,
+        )
+        .expect("Failed to allocate shared memory for log.");
 
         MicaKVS {
             ht_index,

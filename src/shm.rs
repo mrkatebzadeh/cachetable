@@ -50,6 +50,10 @@ pub enum SharedMemoryError {
     Unexpected(String),
 }
 
+#[cfg(target_arch = "x86_64")]
+const SYS_MBIND: i64 = 237;
+
+#[cfg(target_arch = "aarch64")]
 const SYS_MBIND: i64 = 356;
 
 const SHM_HUGETLB: i32 = 0o04000;
