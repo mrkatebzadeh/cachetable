@@ -21,7 +21,7 @@
 
 use anyhow::{Context, Result};
 use libc::{
-    shmat, shmctl, shmdt, shmget, syscall, EEXIST, EINVAL, ENFILE, ENOENT, ENOMEM, ENOSPC, EPERM,
+    mbind, shmat, shmctl, shmdt, shmget, EEXIST, EINVAL, ENFILE, ENOENT, ENOMEM, ENOSPC, EPERM,
     IPC_CREAT, IPC_EXCL, IPC_RMID, MAP_FAILED, S_IRUSR, S_IWUSR,
 };
 use std::ffi::CStr;
@@ -80,17 +80,7 @@ impl<T> SharedMemory<T> {
         }
 
         let nodemask = 1u64 << socket_id;
-        let ret = unsafe {
-            syscall(
-                SYS_MBIND,
-                buf as *mut libc::c_void,
-                size,
-                MPOL_BIND,
-                &nodemask as *const u64,
-                32,
-                0,
-            )
-        };
+        let ret = unsafe { mbind(buf, size, libc::MPOL_BIND, &nodemask as *const u64, 32, 0) };
         if ret != 0 {
             return Err(SharedMemoryError::Unexpected("mbind() failed".into()).into());
         }
