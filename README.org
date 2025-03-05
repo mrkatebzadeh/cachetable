@@ -17,6 +17,28 @@ To include `mica-rs` in your project, add it to your `Cargo.toml` from the GitHu
 mica-rs = { git = "https://github.com/mrkatebzadeh/mica-rs.git" }
 #+end_src
 
+** Example
+
+Here’s a simple example demonstrating how to use the `mica-rs` library for key-value storage:
+
+#+BEGIN_SRC rust
+use mica_rs::*;
+
+fn main() {
+    let mut op = MicaOpBuilder::new().value_size(46).padding_size(10).build();
+    op.key.set_key(10);
+
+    let kvs = MicaBuilder::new()
+            .set_instance_id(1)
+            .set_log_cap(10)
+            .set_node_id(1)
+            .set_num_bkts(4)
+            .build();
+
+    kvs.insert_one(&op);
+}
+#+END_SRC
+
 ** TODO
 - [ ] Implement retrieval of a key-value pair from the store.
 - [ ] Implement network communication for distributed key-value retrieval and storage.
