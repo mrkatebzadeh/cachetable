@@ -49,29 +49,9 @@ pub(crate) struct MicaOp {
     _padding: [u8; MICA_OP_PADDING_SIZE],
 }
 
-#[derive(Default)]
-pub(crate) struct MicaOpBuilder {
-    value_size: usize,
-    padding_size: usize,
-}
-
-impl MicaOpBuilder {
+impl MicaOp {
     pub(crate) fn new() -> Self {
-        Self::default()
-    }
-
-    pub(crate) fn value_size(mut self, value_size: usize) -> Self {
-        self.value_size = value_size;
-        self
-    }
-
-    pub(crate) fn padding_size(mut self, padding_size: usize) -> Self {
-        self.padding_size = padding_size;
-        self
-    }
-
-    pub(crate) fn build(self) -> MicaOp {
-        MicaOp {
+        Self {
             value: [0; MICA_VALUE_SIZE],
             key: MicaKey::default(),
             seqlock: SeqLock::new(0),

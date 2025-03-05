@@ -30,7 +30,7 @@ use std::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
-const MICA_INDEX_SHM_KEY: usize = 1186;
+const MICA_INDEX_SHM_KEY: usize = 1185;
 const MICA_LOG_SHM_KEY: usize = 2185;
 
 pub struct MicaKVS {
@@ -56,9 +56,9 @@ pub struct MicaKVS {
 
 impl MicaKVS {
     pub fn insert_one(&self, op: &MicaOp) {
-        let bkt = op.key.get_bkt() & self.bkt_mask as u32;
+        let bkt = op.key.bkt() & self.bkt_mask as u32;
         let bkt_ptr = unsafe { self.ht_index.buf().add(bkt as usize) };
-        let tag = op.key.get_tag();
+        let tag = op.key.tag();
 
         self.num_insert_op.fetch_add(1, Ordering::Relaxed);
 
@@ -106,9 +106,9 @@ impl MicaKVS {
             let evicted_op = unsafe { &*(log_ptr as *const MicaOp) };
             println!(
                 "Evicting key: bkt {}, server {}, tag {}",
-                evicted_op.key.get_bkt(),
-                evicted_op.key.get_server(),
-                evicted_op.key.get_tag()
+                evicted_op.key.bkt(),
+                evicted_op.key.server(),
+                evicted_op.key.tag()
             );
             panic!("Eviction error");
         }
@@ -121,14 +121,12 @@ impl MicaKVS {
         self.log_head
             .fetch_add(len_to_copy as u64, Ordering::Relaxed);
 
-        /* Ensure 8-byte alignment */
         self.log_head
             .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |log_head| {
                 Some((log_head + 7) & !7)
             })
             .unwrap();
 
-        /* Handle log wraparound */
         let log_head = self.log_head.load(Ordering::Relaxed);
         if self.log_cap - log_head <= MICA_OP_SIZE as u64 + 32 {
             self.log_head
@@ -247,6 +245,8 @@ impl MicaBuilder {
 }
 #[cfg(test)]
 mod tests {
+    use crate::{key::MicaKey, op::MicaOpBuilder};
+
     use super::MicaBuilder;
 
     #[test]
@@ -257,6 +257,19 @@ mod tests {
             .set_node_id(1)
             .set_num_bkts(4)
             .build();
+    }
+
+    #[test]
+    fn insert() {
+        let mut op = MicaOpBuilder::new().value_size(46).padding_size(10).build();
+        op.key.set_key(10);
+        let kvs = MicaBuilder::new()
+            .set_instance_id(1)
+            .set_log_cap(10)
+            .set_node_id(1)
+            .set_num_bkts(4)
+            .build();
+        kvs.insert_one(&op);
     }
 }
 

@@ -75,11 +75,12 @@ impl<T> SharedMemory<T> {
 
         let shmid = unsafe { shmget(shm_key, size, shmflg) };
         if shmid == -1 {
-            return Err(Self::handle_shm_error(shm_key, size));
+            let err = Self::handle_shm_error(shm_key, size);
+            println!("Warning: shmget has error: {:?},", err);
         }
 
         let buf = unsafe { shmat(shmid, ptr::null(), 0) } as *mut T;
-        if buf == MAP_FAILED as *mut T {
+        if buf == ptr::null_mut() {
             return Err(SharedMemoryError::Unexpected("shmat() failed".into()).into());
         }
 
@@ -96,7 +97,7 @@ impl<T> SharedMemory<T> {
             )
         };
         if ret != 0 {
-            return Err(SharedMemoryError::Unexpected("mbind() failed".into()).into());
+            // return Err(SharedMemoryError::Unexpected("mbind() failed".into()).into());
         }
 
         Ok(SharedMemory { shmid, buf, size })
@@ -110,7 +111,7 @@ impl<T> SharedMemory<T> {
         unsafe { self.buf }
     }
 
-    fn handle_shm_error(shm_key: i32, size: usize) -> anyhow::Error {
+    fn handle_shm_error(shm_key: i32, size: usize) -> SharedMemoryError {
         let err = std::io::Error::last_os_error();
         let errno = err.raw_os_error().unwrap_or(0);
         match errno {
@@ -124,7 +125,6 @@ impl<T> SharedMemory<T> {
             ENFILE => SharedMemoryError::FileLimitReached(shm_key),
             _ => SharedMemoryError::Unexpected(err.to_string()),
         }
-        .into()
     }
 
     pub fn free(&self) -> Result<()> {

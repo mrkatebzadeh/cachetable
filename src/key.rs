@@ -30,7 +30,7 @@ impl MicaKey {
         MicaKey { raw: 0 }
     }
 
-    pub fn get_bkt(&self) -> u32 {
+    pub fn bkt(&self) -> u32 {
         (self.raw & 0xFFFFFFFF) as u32
     }
 
@@ -38,7 +38,7 @@ impl MicaKey {
         self.raw = (self.raw & !0xFFFFFFFF) | (bkt as u64);
     }
 
-    pub fn get_server(&self) -> u16 {
+    pub fn server(&self) -> u16 {
         ((self.raw >> 32) & 0xFFFF) as u16
     }
 
@@ -46,12 +46,20 @@ impl MicaKey {
         self.raw = (self.raw & !(0xFFFF << 32)) | ((server as u64) << 32);
     }
 
-    pub fn get_tag(&self) -> u16 {
+    pub fn tag(&self) -> u16 {
         ((self.raw >> 48) & 0xFFFF) as u16
     }
 
     pub fn set_tag(&mut self, tag: u16) {
         self.raw = (self.raw & !(0xFFFF << 48)) | ((tag as u64) << 48);
+    }
+
+    pub fn set_key(&mut self, key: u64) {
+        self.raw = key;
+    }
+
+    pub fn key(&mut self) -> u64 {
+        self.raw
     }
 }
 
