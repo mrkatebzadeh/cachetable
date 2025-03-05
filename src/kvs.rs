@@ -245,7 +245,7 @@ impl MicaBuilder {
 }
 #[cfg(test)]
 mod tests {
-    use crate::{key::MicaKey, op::MicaOpBuilder};
+    use crate::{key::MicaKey, op::MicaOp};
 
     use super::MicaBuilder;
 
@@ -261,7 +261,7 @@ mod tests {
 
     #[test]
     fn insert() {
-        let mut op = MicaOpBuilder::new().value_size(46).padding_size(10).build();
+        let mut op = MicaOp::new();
         op.key.set_key(10);
         let kvs = MicaBuilder::new()
             .set_instance_id(1)

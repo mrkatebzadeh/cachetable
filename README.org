@@ -25,7 +25,7 @@ Here’s a simple example demonstrating how to use the `mica-rs` library for key
 use mica_rs::*;
 
 fn main() {
-    let mut op = MicaOpBuilder::new().value_size(46).padding_size(10).build();
+    let mut op = MicaOp::new();
     op.key.set_key(10);
 
     let kvs = MicaBuilder::new()
