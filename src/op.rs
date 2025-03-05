@@ -35,16 +35,17 @@ const VALUE_SIZE: usize = VALUE_SIZE_ + find_padding_cust_align(VALUE_SIZE_, 64)
 const MICA_VALUE_SIZE: usize = VALUE_SIZE + find_padding_cust_align(VALUE_SIZE, 32);
 const MICA_OP_SIZE_: usize = 32 + MICA_VALUE_SIZE;
 const MICA_OP_PADDING_SIZE: usize = find_padding_cust_align(MICA_OP_SIZE_, 64);
-const MICA_OP_SIZE: usize = MICA_OP_SIZE_ + MICA_OP_PADDING_SIZE;
+pub(crate) const MICA_OP_SIZE: usize = MICA_OP_SIZE_ + MICA_OP_PADDING_SIZE;
 
 pub(crate) struct MicaOp {
-    value: [u8; MICA_VALUE_SIZE],
-    key: MicaKey,
-    seqlock: SeqLock,
-    version: u64,
-    m_id: u8,
-    state: u8,
+    pub(crate) value: [u8; MICA_VALUE_SIZE],
+    pub(crate) key: MicaKey,
+    pub(crate) seqlock: SeqLock,
+    pub(crate) version: u64,
+    pub(crate) m_id: u8,
+    pub(crate) state: u8,
     _unused: [u8; 2],
+    pub(crate) key_id: u32,
     _padding: [u8; MICA_OP_PADDING_SIZE],
 }
 
@@ -78,6 +79,7 @@ impl MicaOpBuilder {
             m_id: 0,
             state: 0,
             _unused: [0, 0],
+            key_id: 0,
             _padding: [0; MICA_OP_PADDING_SIZE],
         }
     }

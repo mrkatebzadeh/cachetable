@@ -7,3 +7,6 @@ edition = "2021"
 [dependencies]
 cityhasher = { version = "0.1.0", default-features = false }
 bitvec = "1.0.1"
+libc = "0.2"
+anyhow = "1.0.97"
+thiserror = "2.0.12"

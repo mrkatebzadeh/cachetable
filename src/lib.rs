@@ -23,6 +23,7 @@ mod bucket;
 mod key;
 pub mod kvs;
 mod op;
+mod shm;
 mod slot;
 
 /* lib.rs ends here */

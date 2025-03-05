@@ -21,9 +21,9 @@
 
 use crate::slot::Slot;
 
-const BUCKET_SIZE: usize = 8;
+pub(crate) const BUCKET_SIZE: usize = 8;
 
-pub(crate) struct Bucket {
-    slots: [Slot; BUCKET_SIZE],
+pub(crate) struct MicaBucket {
+    pub(crate) slots: [Slot; BUCKET_SIZE],
 }
 /* bucket.rs ends here */
