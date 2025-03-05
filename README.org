@@ -1,9 +1,10 @@
+
 # mica-rs
 
 `mica-rs` is a Rust port of the Mica project (https://github.com/efficient/mica), a high-performance, distributed key-value store designed for low-latency workloads.
-This crate reimplements the core functionality of Mica, excluding the network component.
+This crate reimplements Mica's core functionality, excluding the network component.
 
-The network layer (communication between nodes) is not implemented in this port yet.
+This port does not implement the network layer (communication between nodes).
 
 ## Usage
 
