@@ -1,20 +1,24 @@
+#+AUTHOR:    M.R. Siavash Katebzadeh
+#+EMAIL:     (concat "mr" at-sign "katebzadeh.xyz")
+#+LANGUAGE:  en
+#+OPTIONS:   H:4 num:nil toc:nil p:t
 
-# mica-rs
+* mica-rs
 
 `mica-rs` is a Rust port of the Mica project (https://github.com/efficient/mica), a high-performance, distributed key-value store designed for low-latency workloads.
 This crate reimplements Mica's core functionality, excluding the network component.
 
 This port does not implement the network layer (communication between nodes).
 
-## Usage
+** Usage
 
 To include `mica-rs` in your project, add it to your `Cargo.toml` from the GitHub repository:
 
-```toml
+#+begin_src toml
 [dependencies]
 mica-rs = { git = "https://github.com/mrkatebzadeh/mica-rs.git" }
-```
+#+end_src
 
-## TODO
+** TODO
 - [ ] Implement retrieval of a key-value pair from the store.
 - [ ] Implement network communication for distributed key-value retrieval and storage.
