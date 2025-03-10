@@ -29,37 +29,43 @@ pub(crate) struct Slot<const L: usize> {
 }
 
 impl<const L: usize> Slot<L> {
+    const LOG_BITS: usize = L.next_power_of_two().trailing_zeros() as usize;
+    const TAG_BITS: usize = SLOT_SIZE - Self::LOG_BITS - 1;
+    const VALID_MASK: usize = 1 << (SLOT_SIZE - 1);
+    const LOG_MASK: usize = (1 << Self::LOG_BITS) - 1;
+    const TAG_MASK: usize = (1 << Self::TAG_BITS) - 1;
+
     pub(crate) fn new() -> Self {
         Self::default()
     }
 
-    pub(crate) fn set_in_use(&mut self, in_use: bool) {
-        let in_use_bit = if in_use { 1 } else { 0 };
-        self.raw = (self.raw & !(1 << (SLOT_SIZE - 1))) | (in_use_bit << (SLOT_SIZE - 1));
+    pub(crate) fn set_valid(&mut self, valid: bool) {
+        if valid {
+            self.raw |= Self::VALID_MASK;
+        } else {
+            self.raw &= !Self::VALID_MASK;
+        }
     }
 
     pub(crate) fn set_tag(&mut self, tag: usize) {
-        let tag_bits = SLOT_SIZE - L - 1;
-        assert!(tag < (1 << tag_bits), "Tag is too large");
-
-        self.raw = (self.raw & !((1 << (L)) - 1)) | (tag << L);
+        self.raw = (self.raw & !(Self::TAG_MASK << Self::LOG_BITS))
+            | ((tag & Self::TAG_MASK) << Self::LOG_BITS);
     }
 
-    pub(crate) fn set_offset(&mut self, offset: usize) {
-        assert!(offset < (1 << L), "Offset is too large");
-        self.raw = (self.raw & !((1 << L) - 1)) | offset;
+    pub(crate) fn set_log_idx(&mut self, idx: usize) {
+        self.raw = (self.raw & !Self::LOG_MASK) | (idx & Self::LOG_MASK);
     }
 
-    pub(crate) fn in_use(&self) -> bool {
-        (self.raw >> (SLOT_SIZE - 1)) & 1 == 1
+    pub(crate) fn valid(&self) -> bool {
+        (self.raw & Self::VALID_MASK) != 0
     }
 
     pub(crate) fn tag(&self) -> usize {
-        (self.raw >> L) & ((1 << (SLOT_SIZE - L - 1)) - 1)
+        (self.raw >> Self::LOG_BITS) & (Self::TAG_MASK)
     }
 
-    pub(crate) fn offset(&self) -> usize {
-        self.raw & ((1 << L) - 1)
+    pub(crate) fn log_idx(&self) -> usize {
+        self.raw & Self::LOG_MASK
     }
 }
 
@@ -67,10 +73,10 @@ impl<const L: usize> Display for Slot<L> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Slot=> in use: {}, tag: {}, offset: {}",
-            self.in_use(),
+            "Slot=> valid: {}, tag: {}, log_idx: {}",
+            self.valid(),
             self.tag(),
-            self.offset()
+            self.log_idx()
         )
     }
 }

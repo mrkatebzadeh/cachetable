@@ -45,12 +45,10 @@ impl<const L: usize, const B: usize> CacheTable<L, B> {
         let bkt = self.extract_bkt(key_raw);
         let tag = self.extract_tag(key_raw);
 
-        println!("PUT: key: {}, bkt: {}, tag: {}", key_raw, bkt, tag);
         let mut slot_idx: Option<usize> = None;
         for (index, slot) in self.buckets[bkt].slots.iter().enumerate() {
-            if (slot.tag() & self.log_mask) == tag as usize || !slot.in_use() {
+            if (slot.tag() & self.log_mask) == tag as usize || !slot.valid() {
                 slot_idx = Some(index);
-                println!("PUT: Found slot: {}", index);
                 break;
             }
         }
@@ -61,19 +59,16 @@ impl<const L: usize, const B: usize> CacheTable<L, B> {
 
         let slot_idx = slot_idx.unwrap();
 
-        let mut log_head = self.log_head.load(Ordering::Relaxed);
+        let mut log_head = self.log_head.load(Ordering::Acquire);
 
-        self.buckets[bkt].slots[slot_idx].set_in_use(true);
-        self.buckets[bkt].slots[slot_idx].set_offset(log_head as usize);
+        self.buckets[bkt].slots[slot_idx].set_valid(true);
+        self.buckets[bkt].slots[slot_idx].set_log_idx(log_head);
         self.buckets[bkt].slots[slot_idx].set_tag(tag as usize);
 
         self.log.entries[log_head & self.log_mask] = op.clone();
 
         log_head = (log_head + 1) % L;
-        self.log_head.store(log_head, Ordering::Relaxed);
-
-        println!("PUT: Log: {}", self.log);
-        println!("PUT: bucket: {}", self.buckets[bkt]);
+        self.log_head.store(log_head, Ordering::Release);
     }
 
     pub fn get(&self, key: &Key) -> Option<&Value> {
@@ -81,28 +76,19 @@ impl<const L: usize, const B: usize> CacheTable<L, B> {
         let bkt = self.extract_bkt(key_raw);
         let tag = self.extract_tag(key_raw);
 
-        println!("GET: key: {}, bkt: {}, tag: {}", key_raw, bkt, tag);
         let mut slot_idx: Option<usize> = None;
         for (index, slot) in self.buckets[bkt].slots.iter().enumerate() {
-            println!(
-                "GET: key: {}, slot.tag: {}, tag: {}",
-                key_raw,
-                slot.tag(),
-                tag
-            );
-            if (slot.tag() & self.log_mask) == tag as usize && slot.in_use() {
+            if (slot.tag() & self.log_mask) == tag as usize && slot.valid() {
                 slot_idx = Some(index);
                 break;
             }
         }
 
-        println!("GET: Log: {}", self.log);
-        println!("GET: bucket: {}", self.buckets[bkt]);
-
         match slot_idx {
             Some(slot_idx) => {
-                if self.log.entries[self.buckets[bkt].slots[slot_idx].offset()].key == *key {
-                    let value = &self.log.entries[self.buckets[bkt].slots[slot_idx].offset()].value;
+                if self.log.entries[self.buckets[bkt].slots[slot_idx].log_idx()].key == *key {
+                    let value =
+                        &self.log.entries[self.buckets[bkt].slots[slot_idx].log_idx()].value;
                     Some(value)
                 } else {
                     None
