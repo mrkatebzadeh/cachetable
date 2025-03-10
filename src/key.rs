@@ -21,29 +21,21 @@
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
-pub struct MicaKey {
+pub struct CacheKey {
     raw: u64,
 }
 
-impl MicaKey {
+impl CacheKey {
     pub fn new() -> Self {
-        MicaKey { raw: 0 }
+        CacheKey { raw: 0 }
     }
 
-    pub fn bkt(&self) -> u32 {
-        (self.raw & 0xFFFFFFFF) as u32
+    pub fn bkt(&self) -> usize {
+        (self.raw & 0xFFFFFFFF) as usize
     }
 
-    pub fn set_bkt(&mut self, bkt: u32) {
-        self.raw = (self.raw & !0xFFFFFFFF) | (bkt as u64);
-    }
-
-    pub fn server(&self) -> u16 {
-        ((self.raw >> 32) & 0xFFFF) as u16
-    }
-
-    pub fn set_server(&mut self, server: u16) {
-        self.raw = (self.raw & !(0xFFFF << 32)) | ((server as u64) << 32);
+    pub fn set_bkt(&mut self, bkt: usize) {
+        self.raw = (self.raw & !0xFFFFFFFF) | bkt as u64;
     }
 
     pub fn tag(&self) -> u16 {

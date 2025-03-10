@@ -3,42 +3,35 @@
 #+LANGUAGE:  en
 #+OPTIONS:   H:4 num:nil toc:nil p:t
 
-* mica-rs
+* CacheTable
 
-~mica-rs~ is a Rust port of the Mica project (https://github.com/efficient/mica), a high-performance, distributed key-value store designed for low-latency workloads.
-This crate reimplements Mica's core functionality, excluding the network component.
+~cachetable~ is a high-performance and lock-free lossy hash table designed for low-latency workloads.
 
 ** Usage
 
-To include `mica-rs` in your project, add it to your `Cargo.toml` from the GitHub repository:
+To include ~cachetable~ in your project, add it to your `Cargo.toml` from the GitHub repository:
 
 #+begin_src toml
 [dependencies]
-mica-rs = { git = "https://github.com/mrkatebzadeh/mica-rs.git" }
+cachetable = { git = "https://github.com/mrkatebzadeh/cachetable.git" }
 #+end_src
 
 ** Example
 
-Here’s a simple example demonstrating how to use the ~mica-rs~ crate for key-value storage:
+Here’s a simple example demonstrating how to use the ~cachetable~ crate for a key-value storage:
 
 #+BEGIN_SRC rust
-use mica_rs::*;
+use cachetable::*;
 
 fn main() {
-    let mut op = MicaOp::new();
+    let mut op = Op::new();
     op.key.set_key(10);
 
-    let kvs = MicaBuilder::new()
-            .set_instance_id(1)
-            .set_log_cap(10)
-            .set_node_id(1)
-            .set_num_bkts(4)
-            .build();
+    let mut ctable= Cachetable<10/* Log size */ , 32 /* Bucket size*/ >;
 
-    kvs.insert_one(&op);
+    ctable.insert(&op);
 }
 #+END_SRC
 
 ** TODO
-- [ ] Implement retrieval of a key-value pair from the store.
-- [ ] Implement network communication for distributed key-value retrieval and storage.
+- [ ] Implement retrieval of a key-value pair from the hash table.

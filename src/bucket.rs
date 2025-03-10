@@ -19,11 +19,34 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use std::fmt::Display;
+
 use crate::slot::Slot;
 
-pub(crate) const BUCKET_SIZE: usize = 8;
+#[derive(Clone, Copy)]
+pub(crate) struct Bucket<const BS: usize> {
+    pub(crate) slots: [Slot; BS],
+}
 
-pub(crate) struct MicaBucket {
-    pub(crate) slots: [Slot; BUCKET_SIZE],
+impl<const BS: usize> Display for Bucket<BS> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Bucket=> [{}]",
+            self.slots
+                .iter()
+                .map(|slot| format!("{}", slot))
+                .collect::<Vec<String>>()
+                .join("\n")
+        )
+    }
+}
+
+impl<const BS: usize> Default for Bucket<BS> {
+    fn default() -> Self {
+        Self {
+            slots: [Slot::default(); BS],
+        }
+    }
 }
 /* bucket.rs ends here */

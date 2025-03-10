@@ -19,9 +19,9 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use bitvec::prelude as bv;
+use std::fmt::Display;
 
-pub(crate) const MICA_LOG_BITS: usize = 40;
+pub(crate) const LOG_BITS: usize = 40;
 const SLOT_SIZE: usize = 64;
 
 #[derive(Default, Clone, Copy)]
@@ -40,15 +40,15 @@ impl Slot {
     }
 
     pub(crate) fn set_tag(&mut self, tag: usize) {
-        let tag_bits = SLOT_SIZE - MICA_LOG_BITS - 1;
+        let tag_bits = SLOT_SIZE - LOG_BITS - 1;
         assert!(tag < (1 << tag_bits), "Tag is too large");
 
-        self.raw = (self.raw & !((1 << (MICA_LOG_BITS)) - 1)) | (tag << MICA_LOG_BITS);
+        self.raw = (self.raw & !((1 << (LOG_BITS)) - 1)) | (tag << LOG_BITS);
     }
 
     pub(crate) fn set_offset(&mut self, offset: usize) {
-        assert!(offset < (1 << MICA_LOG_BITS), "Offset is too large");
-        self.raw = (self.raw & !((1 << MICA_LOG_BITS) - 1)) | offset;
+        assert!(offset < (1 << LOG_BITS), "Offset is too large");
+        self.raw = (self.raw & !((1 << LOG_BITS) - 1)) | offset;
     }
 
     pub(crate) fn in_use(&self) -> bool {
@@ -56,11 +56,23 @@ impl Slot {
     }
 
     pub(crate) fn tag(&self) -> usize {
-        (self.raw >> MICA_LOG_BITS) & ((1 << (SLOT_SIZE - MICA_LOG_BITS - 1)) - 1)
+        (self.raw >> LOG_BITS) & ((1 << (SLOT_SIZE - LOG_BITS - 1)) - 1)
     }
 
     pub(crate) fn offset(&self) -> usize {
-        self.raw & ((1 << MICA_LOG_BITS) - 1)
+        self.raw & ((1 << LOG_BITS) - 1)
+    }
+}
+
+impl Display for Slot {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Slot=> in use: {}, tag: {}, offset: {}",
+            self.in_use(),
+            self.tag(),
+            self.offset()
+        )
     }
 }
 

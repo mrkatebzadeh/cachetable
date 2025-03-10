@@ -1,4 +1,4 @@
-/* lib.rs --- LIB
+/* log.rs --- LOG
 
 *
 * Author: M.R.Siavash Katebzadeh <mr@katebzadeh.xyz>
@@ -19,11 +19,17 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-mod bucket;
-mod key;
-mod log;
-mod op;
-mod slot;
+use crate::op::Op;
 
-pub mod cachetable;
-/* lib.rs ends here */
+pub(crate) struct Log<const N: usize> {
+    pub(crate) entries: [Op; N],
+}
+
+impl<const N: usize> Default for Log<N> {
+    fn default() -> Self {
+        Self {
+            entries: std::array::from_fn(|_| Op::default()),
+        }
+    }
+}
+/* log.rs ends here */

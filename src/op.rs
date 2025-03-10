@@ -19,9 +19,8 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use std::sync::atomic::AtomicU64;
-
-use crate::key::MicaKey;
+use crate::key::CacheKey;
+use std::sync::{atomic::AtomicU64, Arc};
 
 pub(crate) type SeqLock = AtomicU64;
 
@@ -32,35 +31,42 @@ const fn find_padding_cust_align(size: usize, align: usize) -> usize {
 const CACHE_LINE: usize = 64;
 const VALUE_SIZE_: usize = 32;
 const VALUE_SIZE: usize = VALUE_SIZE_ + find_padding_cust_align(VALUE_SIZE_, 64);
-const MICA_VALUE_SIZE: usize = VALUE_SIZE + find_padding_cust_align(VALUE_SIZE, 32);
-const MICA_OP_SIZE_: usize = 32 + MICA_VALUE_SIZE;
-const MICA_OP_PADDING_SIZE: usize = find_padding_cust_align(MICA_OP_SIZE_, 64);
-pub(crate) const MICA_OP_SIZE: usize = MICA_OP_SIZE_ + MICA_OP_PADDING_SIZE;
+const OP_VALUE_SIZE: usize = VALUE_SIZE + find_padding_cust_align(VALUE_SIZE, 32);
+const OP_SIZE_: usize = 32 + OP_VALUE_SIZE;
+const OP_PADDING_SIZE: usize = find_padding_cust_align(OP_SIZE_, 64);
+pub(crate) const OP_SIZE: usize = OP_SIZE_ + OP_PADDING_SIZE;
 
-pub(crate) struct MicaOp {
-    pub(crate) value: [u8; MICA_VALUE_SIZE],
-    pub(crate) key: MicaKey,
-    pub(crate) seqlock: SeqLock,
+#[derive(Clone)]
+pub(crate) struct Op {
+    pub(crate) value: [u8; OP_VALUE_SIZE],
+    pub(crate) key: CacheKey,
+    pub(crate) seqlock: Arc<SeqLock>,
     pub(crate) version: u64,
     pub(crate) m_id: u8,
     pub(crate) state: u8,
     _unused: [u8; 2],
     pub(crate) key_id: u32,
-    _padding: [u8; MICA_OP_PADDING_SIZE],
+    _padding: [u8; OP_PADDING_SIZE],
 }
 
-impl MicaOp {
+impl Op {
     pub(crate) fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl Default for Op {
+    fn default() -> Self {
         Self {
-            value: [0; MICA_VALUE_SIZE],
-            key: MicaKey::default(),
-            seqlock: SeqLock::new(0),
+            value: [0; OP_VALUE_SIZE],
+            key: CacheKey::default(),
+            seqlock: Arc::new(SeqLock::new(0)),
             version: 0,
             m_id: 0,
             state: 0,
             _unused: [0, 0],
             key_id: 0,
-            _padding: [0; MICA_OP_PADDING_SIZE],
+            _padding: [0; OP_PADDING_SIZE],
         }
     }
 }
