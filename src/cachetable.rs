@@ -79,8 +79,12 @@ impl<const L: usize, const B: usize> CacheTable<L, B> {
 
         match slot_idx {
             Some(slot_idx) => {
-                let value = &self.log.entries[self.buckets[bkt].slots[slot_idx].offset()].value;
-                Some(value)
+                if self.log.entries[self.buckets[bkt].slots[slot_idx].offset()].key == *key {
+                    let value = &self.log.entries[self.buckets[bkt].slots[slot_idx].offset()].value;
+                    Some(value)
+                } else {
+                    None
+                }
             }
             None => None,
         }
@@ -148,6 +152,28 @@ mod tests {
         key.set_key(11);
         let value = ctable.get(&key);
         assert!(value.is_none());
+    }
+
+    #[test]
+    fn log_wrap() {
+        let mut op = Op::new();
+        op.key.set_key(10);
+
+        let mut ctable = CacheTable::<2, 32>::new();
+
+        ctable.insert(&op);
+        op.key.set_key(15);
+        ctable.insert(&op);
+
+        op.key.set_key(55);
+        ctable.insert(&op);
+
+        let mut key = Key::new();
+        key.set_key(15);
+        let value = ctable.get(&key);
+
+        assert!(value.is_some());
+        assert_eq!(value.unwrap(), &op.value);
     }
 }
 

@@ -22,7 +22,7 @@
 use std::fmt::Display;
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
 pub struct Key {
     raw: u64,
 }
