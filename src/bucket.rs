@@ -24,11 +24,11 @@ use std::fmt::Display;
 use crate::slot::Slot;
 
 #[derive(Clone, Copy)]
-pub(crate) struct Bucket<const BS: usize> {
-    pub(crate) slots: [Slot; BS],
+pub(crate) struct Bucket<const L: usize, const B: usize> {
+    pub(crate) slots: [Slot<L>; B],
 }
 
-impl<const BS: usize> Display for Bucket<BS> {
+impl<const L: usize, const B: usize> Display for Bucket<L, B> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -42,10 +42,10 @@ impl<const BS: usize> Display for Bucket<BS> {
     }
 }
 
-impl<const BS: usize> Default for Bucket<BS> {
+impl<const L: usize, const B: usize> Default for Bucket<L, B> {
     fn default() -> Self {
         Self {
-            slots: [Slot::default(); BS],
+            slots: [Slot::default(); B],
         }
     }
 }

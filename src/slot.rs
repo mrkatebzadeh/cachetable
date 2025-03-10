@@ -21,15 +21,14 @@
 
 use std::fmt::Display;
 
-pub(crate) const LOG_BITS: usize = 40;
 const SLOT_SIZE: usize = 64;
 
 #[derive(Default, Clone, Copy)]
-pub(crate) struct Slot {
+pub(crate) struct Slot<const L: usize> {
     raw: usize,
 }
 
-impl Slot {
+impl<const L: usize> Slot<L> {
     pub(crate) fn new() -> Self {
         Self::default()
     }
@@ -40,15 +39,15 @@ impl Slot {
     }
 
     pub(crate) fn set_tag(&mut self, tag: usize) {
-        let tag_bits = SLOT_SIZE - LOG_BITS - 1;
+        let tag_bits = SLOT_SIZE - L - 1;
         assert!(tag < (1 << tag_bits), "Tag is too large");
 
-        self.raw = (self.raw & !((1 << (LOG_BITS)) - 1)) | (tag << LOG_BITS);
+        self.raw = (self.raw & !((1 << (L)) - 1)) | (tag << L);
     }
 
     pub(crate) fn set_offset(&mut self, offset: usize) {
-        assert!(offset < (1 << LOG_BITS), "Offset is too large");
-        self.raw = (self.raw & !((1 << LOG_BITS) - 1)) | offset;
+        assert!(offset < (1 << L), "Offset is too large");
+        self.raw = (self.raw & !((1 << L) - 1)) | offset;
     }
 
     pub(crate) fn in_use(&self) -> bool {
@@ -56,15 +55,15 @@ impl Slot {
     }
 
     pub(crate) fn tag(&self) -> usize {
-        (self.raw >> LOG_BITS) & ((1 << (SLOT_SIZE - LOG_BITS - 1)) - 1)
+        (self.raw >> L) & ((1 << (SLOT_SIZE - L - 1)) - 1)
     }
 
     pub(crate) fn offset(&self) -> usize {
-        self.raw & ((1 << LOG_BITS) - 1)
+        self.raw & ((1 << L) - 1)
     }
 }
 
-impl Display for Slot {
+impl<const L: usize> Display for Slot<L> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,

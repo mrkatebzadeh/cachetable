@@ -22,12 +22,10 @@
 use crate::{bucket::Bucket, key::Key, log::Log, op::Op, value::Value};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-const MICA_INDEX_SHM_KEY: usize = 1185;
-const MICA_LOG_SHM_KEY: usize = 2185;
 const BUCKET_SIZE: usize = 8;
 
 pub struct CacheTable<const L: usize, const B: usize> {
-    buckets: [Bucket<BUCKET_SIZE>; B],
+    buckets: [Bucket<L, BUCKET_SIZE>; B],
     log: Log<L>,
     bkt_mask: usize,
     log_mask: usize,
@@ -35,20 +33,30 @@ pub struct CacheTable<const L: usize, const B: usize> {
 }
 
 impl<const L: usize, const B: usize> CacheTable<L, B> {
-    pub fn insert(&mut self, op: &Op) {
-        let bkt = op.key.bkt() & self.bkt_mask;
-        let tag = op.key.tag();
+    fn extract_bkt(&self, key: u64) -> usize {
+        (key as usize) & self.bkt_mask
+    }
 
+    fn extract_tag(&self, key: u64) -> u32 {
+        (key >> self.bkt_mask.count_ones()) as u32
+    }
+    pub fn insert(&mut self, op: &Op) {
+        let key_raw = op.key.key();
+        let bkt = self.extract_bkt(key_raw);
+        let tag = self.extract_tag(key_raw);
+
+        println!("PUT: key: {}, bkt: {}, tag: {}", key_raw, bkt, tag);
         let mut slot_idx: Option<usize> = None;
         for (index, slot) in self.buckets[bkt].slots.iter().enumerate() {
-            if slot.tag() == tag as usize || !slot.in_use() {
+            if (slot.tag() & self.log_mask) == tag as usize || !slot.in_use() {
                 slot_idx = Some(index);
+                println!("PUT: Found slot: {}", index);
                 break;
             }
         }
 
         if slot_idx.is_none() {
-            slot_idx = Some((tag & (BUCKET_SIZE - 1) as u16) as usize);
+            slot_idx = Some((tag & (BUCKET_SIZE - 1) as u32) as usize);
         }
 
         let slot_idx = slot_idx.unwrap();
@@ -63,19 +71,33 @@ impl<const L: usize, const B: usize> CacheTable<L, B> {
 
         log_head = (log_head + 1) % L;
         self.log_head.store(log_head, Ordering::Relaxed);
+
+        println!("PUT: Log: {}", self.log);
+        println!("PUT: bucket: {}", self.buckets[bkt]);
     }
 
     pub fn get(&self, key: &Key) -> Option<&Value> {
-        let bkt = key.bkt() & self.bkt_mask;
-        let tag = key.tag();
+        let key_raw = key.key();
+        let bkt = self.extract_bkt(key_raw);
+        let tag = self.extract_tag(key_raw);
 
+        println!("GET: key: {}, bkt: {}, tag: {}", key_raw, bkt, tag);
         let mut slot_idx: Option<usize> = None;
         for (index, slot) in self.buckets[bkt].slots.iter().enumerate() {
-            if slot.tag() == tag as usize && slot.in_use() {
+            println!(
+                "GET: key: {}, slot.tag: {}, tag: {}",
+                key_raw,
+                slot.tag(),
+                tag
+            );
+            if (slot.tag() & self.log_mask) == tag as usize && slot.in_use() {
                 slot_idx = Some(index);
                 break;
             }
         }
+
+        println!("GET: Log: {}", self.log);
+        println!("GET: bucket: {}", self.buckets[bkt]);
 
         match slot_idx {
             Some(slot_idx) => {
@@ -90,11 +112,12 @@ impl<const L: usize, const B: usize> CacheTable<L, B> {
         }
     }
     pub fn new() -> CacheTable<L, B> {
-        assert!(B.is_power_of_two(), "BS must be a power of two!");
+        assert!(B.is_power_of_two(), "B must be a power of two!");
+        assert!(L.is_power_of_two(), "L must be a power of two!");
         let bkt_mask = B - 1;
         let log_mask = L - 1;
         CacheTable {
-            buckets: [Bucket::default(); B],
+            buckets: [Bucket::<L, BUCKET_SIZE>::default(); B],
             log: Log::<L>::default(),
             bkt_mask,
             log_mask,
@@ -110,7 +133,7 @@ mod tests {
 
     #[test]
     fn init() {
-        let _ = CacheTable::<10, 32>::new();
+        let _ = CacheTable::<2, 32>::new();
     }
 
     #[test]
@@ -118,7 +141,7 @@ mod tests {
         let mut op = Op::new();
         op.key.set_key(10);
 
-        let mut ctable = CacheTable::<10, 32>::new();
+        let mut ctable = CacheTable::<2, 32>::new();
 
         ctable.insert(&op);
     }
@@ -128,7 +151,7 @@ mod tests {
         let mut op = Op::new();
         op.key.set_key(10);
 
-        let mut ctable = CacheTable::<10, 32>::new();
+        let mut ctable = CacheTable::<2, 32>::new();
 
         ctable.insert(&op);
 
@@ -144,7 +167,7 @@ mod tests {
         let mut op = Op::new();
         op.key.set_key(10);
 
-        let mut ctable = CacheTable::<10, 32>::new();
+        let mut ctable = CacheTable::<2, 32>::new();
 
         ctable.insert(&op);
 

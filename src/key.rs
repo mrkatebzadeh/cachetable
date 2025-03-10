@@ -32,27 +32,11 @@ impl Key {
         Key { raw: 0 }
     }
 
-    pub fn bkt(&self) -> usize {
-        (self.raw & 0xFFFFFFFF) as usize
-    }
-
-    pub fn set_bkt(&mut self, bkt: usize) {
-        self.raw = (self.raw & !0xFFFFFFFF) | bkt as u64;
-    }
-
-    pub fn tag(&self) -> u16 {
-        ((self.raw >> 48) & 0xFFFF) as u16
-    }
-
-    pub fn set_tag(&mut self, tag: u16) {
-        self.raw = (self.raw & !(0xFFFF << 48)) | ((tag as u64) << 48);
-    }
-
     pub fn set_key(&mut self, key: u64) {
         self.raw = key;
     }
 
-    pub fn key(&mut self) -> u64 {
+    pub fn key(&self) -> u64 {
         self.raw
     }
 }

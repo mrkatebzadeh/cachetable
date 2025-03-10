@@ -19,6 +19,8 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use std::fmt::Display;
+
 use crate::op::Op;
 
 pub(crate) struct Log<const N: usize> {
@@ -30,6 +32,20 @@ impl<const N: usize> Default for Log<N> {
         Self {
             entries: std::array::from_fn(|_| Op::default()),
         }
+    }
+}
+
+impl<const N: usize> Display for Log<N> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.entries
+                .iter()
+                .map(|item| format!("{}", item))
+                .collect::<Vec<String>>()
+                .join("\n")
+        )
     }
 }
 /* log.rs ends here */
