@@ -39,9 +39,9 @@ const OP_PADDING_SIZE: usize = find_padding_cust_align(OP_SIZE_, 64);
 pub(crate) const OP_SIZE: usize = OP_SIZE_ + OP_PADDING_SIZE;
 
 #[derive(Clone)]
-pub(crate) struct Op {
-    pub(crate) key: Key,
-    pub(crate) value: Value,
+pub struct Op {
+    pub key: Key,
+    pub value: Value,
     pub(crate) seqlock: Arc<SeqLock>,
     pub(crate) version: u64,
     pub(crate) m_id: u8,
@@ -52,7 +52,7 @@ pub(crate) struct Op {
 }
 
 impl Op {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self::default()
     }
 }

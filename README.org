@@ -21,13 +21,14 @@ cachetable = { git = "https://github.com/mrkatebzadeh/cachetable.git" }
 Here’s a simple example demonstrating how to use the ~cachetable~ crate for a key-value storage:
 
 #+BEGIN_SRC rust
-use cachetable::*;
+use cachetable::cachetable::CacheTable;
+use cachetable::op::Op;
 
 fn main() {
     let mut op = Op::new();
     op.key.set_key(10);
 
-    let mut ctable= Cachetable<10/* Log size */ , 32 /* Bucket size*/ >;
+    let mut ctable = CacheTable::<10 /* Log size */, 32 /* Bucket size*/>::new();
 
     ctable.insert(&op);
 }

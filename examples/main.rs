@@ -1,4 +1,4 @@
-/* lib.rs --- LIB
+/* main.rs --- MAIN
 
 *
 * Author: M.R.Siavash Katebzadeh <mr@katebzadeh.xyz>
@@ -19,12 +19,15 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-mod bucket;
-mod key;
-mod log;
-mod slot;
-mod value;
+use cachetable::cachetable::CacheTable;
+use cachetable::op::Op;
 
-pub mod cachetable;
-pub mod op;
-/* lib.rs ends here */
+fn main() {
+    let mut op = Op::new();
+    op.key.set_key(10);
+
+    let mut ctable = CacheTable::<10 /* Log size */, 32 /* Bucket size*/>::new();
+
+    ctable.insert(&op);
+}
+/* main.rs ends here */
