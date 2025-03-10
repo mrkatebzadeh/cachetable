@@ -1,4 +1,4 @@
-/* kvs.rs --- KVS
+/* cachetable.rs --- Cachetable
 
 *
 * Author: M.R.Siavash Katebzadeh <mr@katebzadeh.xyz>
@@ -19,7 +19,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use crate::{bucket::Bucket, log::Log, op::Op};
+use crate::{bucket::Bucket, key::Key, log::Log, op::Op, value::Value};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 const MICA_INDEX_SHM_KEY: usize = 1185;
@@ -39,26 +39,25 @@ impl<const L: usize, const B: usize> CacheTable<L, B> {
         let bkt = op.key.bkt() & self.bkt_mask;
         let tag = op.key.tag();
 
-        let mut slot_to_use: Option<usize> = None;
+        let mut slot_idx: Option<usize> = None;
         for (index, slot) in self.buckets[bkt].slots.iter().enumerate() {
             if slot.tag() == tag as usize || !slot.in_use() {
-                slot_to_use = Some(index);
+                slot_idx = Some(index);
                 break;
             }
         }
 
-        let mut evict_flag = false;
-        if slot_to_use.is_none() {
-            slot_to_use = Some((tag & (BUCKET_SIZE - 1) as u16) as usize);
-            evict_flag = true;
+        if slot_idx.is_none() {
+            slot_idx = Some((tag & (BUCKET_SIZE - 1) as u16) as usize);
         }
 
-        let slot_to_use = slot_to_use.unwrap();
+        let slot_idx = slot_idx.unwrap();
+
         let mut log_head = self.log_head.load(Ordering::Relaxed);
 
-        self.buckets[bkt].slots[slot_to_use].set_in_use(true);
-        self.buckets[bkt].slots[slot_to_use].set_offset(log_head as usize);
-        self.buckets[bkt].slots[slot_to_use].set_tag(tag as usize);
+        self.buckets[bkt].slots[slot_idx].set_in_use(true);
+        self.buckets[bkt].slots[slot_idx].set_offset(log_head as usize);
+        self.buckets[bkt].slots[slot_idx].set_tag(tag as usize);
 
         self.log.entries[log_head & self.log_mask] = op.clone();
 
@@ -66,6 +65,26 @@ impl<const L: usize, const B: usize> CacheTable<L, B> {
         self.log_head.store(log_head, Ordering::Relaxed);
     }
 
+    pub fn get(&self, key: &Key) -> Option<&Value> {
+        let bkt = key.bkt() & self.bkt_mask;
+        let tag = key.tag();
+
+        let mut slot_idx: Option<usize> = None;
+        for (index, slot) in self.buckets[bkt].slots.iter().enumerate() {
+            if slot.tag() == tag as usize && slot.in_use() {
+                slot_idx = Some(index);
+                break;
+            }
+        }
+
+        match slot_idx {
+            Some(slot_idx) => {
+                let value = &self.log.entries[self.buckets[bkt].slots[slot_idx].offset()].value;
+                Some(value)
+            }
+            None => None,
+        }
+    }
     pub fn new() -> CacheTable<L, B> {
         assert!(B.is_power_of_two(), "BS must be a power of two!");
         let bkt_mask = B - 1;
@@ -81,13 +100,13 @@ impl<const L: usize, const B: usize> CacheTable<L, B> {
 }
 #[cfg(test)]
 mod tests {
-    use crate::{key::CacheKey, op::Op};
+    use crate::{key::Key, op::Op};
 
     use super::CacheTable;
 
     #[test]
     fn init() {
-        let ctable = CacheTable::<10, 32>::new();
+        let _ = CacheTable::<10, 32>::new();
     }
 
     #[test]
@@ -99,6 +118,37 @@ mod tests {
 
         ctable.insert(&op);
     }
+
+    #[test]
+    fn get() {
+        let mut op = Op::new();
+        op.key.set_key(10);
+
+        let mut ctable = CacheTable::<10, 32>::new();
+
+        ctable.insert(&op);
+
+        let mut key = Key::new();
+        key.set_key(10);
+        let value = ctable.get(&key);
+        assert!(value.is_some());
+        assert_eq!(value.unwrap(), &op.value);
+    }
+
+    #[test]
+    fn get_fail() {
+        let mut op = Op::new();
+        op.key.set_key(10);
+
+        let mut ctable = CacheTable::<10, 32>::new();
+
+        ctable.insert(&op);
+
+        let mut key = Key::new();
+        key.set_key(11);
+        let value = ctable.get(&key);
+        assert!(value.is_none());
+    }
 }
 
-/* kvs.rs ends here */
+/* cachetable.rs ends here */

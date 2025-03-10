@@ -24,6 +24,7 @@ mod key;
 mod log;
 mod op;
 mod slot;
+mod value;
 
 pub mod cachetable;
 /* lib.rs ends here */

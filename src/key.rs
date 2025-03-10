@@ -19,15 +19,17 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use std::fmt::Display;
+
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
-pub struct CacheKey {
+pub struct Key {
     raw: u64,
 }
 
-impl CacheKey {
+impl Key {
     pub fn new() -> Self {
-        CacheKey { raw: 0 }
+        Key { raw: 0 }
     }
 
     pub fn bkt(&self) -> usize {
@@ -55,4 +57,9 @@ impl CacheKey {
     }
 }
 
+impl Display for Key {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Key: {}", self.raw)
+    }
+}
 /* key.rs ends here */
