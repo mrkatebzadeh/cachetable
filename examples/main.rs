@@ -26,7 +26,7 @@ fn main() {
     let mut op = Op::new();
     op.key.set_key(10);
 
-    let mut ctable = CacheTable::<10 /* Log size */, 32 /* Bucket size*/>::new();
+    let mut ctable = CacheTable::<4 /* Log size */, 32 /* Bucket size*/>::new();
 
     ctable.insert(&op);
 }
