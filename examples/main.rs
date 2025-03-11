@@ -20,14 +20,14 @@
 */
 
 use cachetable::cachetable::CacheTable;
-use cachetable::op::Op;
+use cachetable::key::CacheKey;
+use cachetable::value::CacheValue;
 
 fn main() {
-    let mut op = Op::new();
-    op.key.set_key(10);
-
+    let key = CacheKey::new(10);
+    let value = CacheValue::new(&[10]);
     let mut ctable = CacheTable::<4 /* Log size */, 32 /* Bucket size*/>::new();
 
-    ctable.insert(&op);
+    ctable.insert(key, value);
 }
 /* main.rs ends here */

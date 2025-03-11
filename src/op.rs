@@ -20,8 +20,8 @@
 */
 
 use crate::{
-    key::Key,
-    value::{Value, OP_VALUE_SIZE},
+    key::CacheKey,
+    value::{CacheValue, OP_VALUE_SIZE},
 };
 use std::{
     fmt::Display,
@@ -40,8 +40,8 @@ pub(crate) const OP_SIZE: usize = OP_SIZE_ + OP_PADDING_SIZE;
 
 #[derive(Clone)]
 pub struct Op {
-    pub key: Key,
-    pub value: Value,
+    pub key: CacheKey,
+    pub value: CacheValue,
     pub(crate) seqlock: Arc<SeqLock>,
     pub(crate) version: u64,
     pub(crate) m_id: u8,
@@ -60,8 +60,8 @@ impl Op {
 impl Default for Op {
     fn default() -> Self {
         Self {
-            value: Value::default(),
-            key: Key::default(),
+            value: CacheValue::default(),
+            key: CacheKey::default(),
             seqlock: Arc::new(SeqLock::new(0)),
             version: 0,
             m_id: 0,

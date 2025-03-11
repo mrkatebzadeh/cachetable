@@ -31,11 +31,22 @@ const VALUE_SIZE: usize = VALUE_SIZE_ + find_padding_cust_align(VALUE_SIZE_, 64)
 pub const OP_VALUE_SIZE: usize = VALUE_SIZE + find_padding_cust_align(VALUE_SIZE, 32);
 
 #[derive(Debug, Eq, PartialEq, Clone)]
-pub struct Value {
+pub struct CacheValue {
     pub(crate) raw: [u8; OP_VALUE_SIZE],
 }
 
-impl Display for Value {
+impl CacheValue {
+    pub fn new(value: &[u8]) -> Self {
+        let mut raw = [0u8; OP_VALUE_SIZE];
+
+        let len = value.len().min(OP_VALUE_SIZE);
+        raw[..len].copy_from_slice(&value[..len]);
+
+        Self { raw }
+    }
+}
+
+impl Display for CacheValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -49,7 +60,7 @@ impl Display for Value {
     }
 }
 
-impl Default for Value {
+impl Default for CacheValue {
     fn default() -> Self {
         Self {
             raw: std::array::from_fn(|_| 0),

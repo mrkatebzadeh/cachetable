@@ -23,13 +23,13 @@ use std::fmt::Display;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
-pub struct Key {
+pub struct CacheKey {
     raw: u64,
 }
 
-impl Key {
-    pub fn new() -> Self {
-        Key { raw: 0 }
+impl CacheKey {
+    pub fn new(key: u64) -> Self {
+        CacheKey { raw: key }
     }
 
     pub fn set_key(&mut self, key: u64) {
@@ -41,7 +41,7 @@ impl Key {
     }
 }
 
-impl Display for Key {
+impl Display for CacheKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Key: {}", self.raw)
     }

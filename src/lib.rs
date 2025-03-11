@@ -20,11 +20,11 @@
 */
 
 mod bucket;
-mod key;
 mod log;
+mod op;
 mod slot;
-mod value;
 
 pub mod cachetable;
-pub mod op;
+pub mod key;
+pub mod value;
 /* lib.rs ends here */
