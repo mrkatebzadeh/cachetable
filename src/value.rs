@@ -26,7 +26,7 @@ use crate::key::KEY_SIZE;
 const CACHE_LINE: usize = 64;
 const VALUE_SIZE: usize = CACHE_LINE - KEY_SIZE;
 
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct CacheValue {
     pub(crate) raw: [u8; VALUE_SIZE],
 }
