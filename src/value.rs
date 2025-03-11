@@ -40,6 +40,10 @@ impl CacheValue {
 
         Self { raw }
     }
+
+    pub fn len(&self) -> usize {
+        VALUE_SIZE
+    }
 }
 
 impl Display for CacheValue {

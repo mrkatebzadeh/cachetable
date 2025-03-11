@@ -21,7 +21,7 @@
 
 use std::fmt::Display;
 
-pub(crate) const KEY_SIZE: usize = 8;
+pub(crate) const KEY_SIZE: usize = std::mem::size_of::<CacheKey>();
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
@@ -40,6 +40,10 @@ impl CacheKey {
 
     pub fn key(&self) -> u64 {
         self.raw
+    }
+
+    pub fn len(&self) -> usize {
+        KEY_SIZE
     }
 }
 
