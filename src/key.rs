@@ -39,7 +39,8 @@ impl CacheKey {
     }
 
     pub fn key(&self) -> u64 {
-        self.raw
+        let field_ptr = std::ptr::addr_of!(self.raw);
+        unsafe { field_ptr.read_unaligned() }
     }
 
     pub fn len(&self) -> usize {
@@ -49,7 +50,7 @@ impl CacheKey {
 
 impl Display for CacheKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Key: {}", self.raw)
+        write!(f, "Key: {}", self.key())
     }
 }
 /* key.rs ends here */
