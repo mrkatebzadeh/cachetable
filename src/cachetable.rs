@@ -124,7 +124,7 @@ impl<const L: usize, const B: usize> CacheTable<L, B> {
 }
 #[cfg(test)]
 mod tests {
-    use crate::{key::CacheKey, op::Op, value::CacheValue};
+    use crate::{key::CacheKey, value::CacheValue};
 
     use super::CacheTable;
 
