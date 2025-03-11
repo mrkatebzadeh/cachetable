@@ -20,11 +20,14 @@
 */
 
 mod bucket;
+mod cachetable;
+mod key;
 mod log;
 mod op;
 mod slot;
+mod value;
 
-pub mod cachetable;
-pub mod key;
-pub mod value;
+pub use cachetable::CacheTable;
+pub use key::CacheKey;
+pub use value::CacheValue;
 /* lib.rs ends here */

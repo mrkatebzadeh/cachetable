@@ -19,9 +19,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use cachetable::cachetable::CacheTable;
-use cachetable::key::CacheKey;
-use cachetable::value::CacheValue;
+use cachetable::{CacheKey, CacheTable, CacheValue};
 
 fn main() {
     let key = CacheKey::new(10);

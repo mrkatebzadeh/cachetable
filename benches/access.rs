@@ -21,9 +21,7 @@
 
 use std::collections::HashMap;
 
-use cachetable::cachetable::CacheTable;
-use cachetable::key::CacheKey;
-use cachetable::value::CacheValue;
+use cachetable::{CacheKey, CacheTable, CacheValue};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 pub fn put_bench(c: &mut Criterion) {

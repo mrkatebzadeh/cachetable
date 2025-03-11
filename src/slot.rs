@@ -35,10 +35,6 @@ impl<const L: usize> Slot<L> {
     const LOG_MASK: usize = (1 << Self::LOG_BITS) - 1;
     const TAG_MASK: usize = (1 << Self::TAG_BITS) - 1;
 
-    pub(crate) fn new() -> Self {
-        Self::default()
-    }
-
     pub(crate) fn set_valid(&mut self, valid: bool) {
         if valid {
             self.raw |= Self::VALID_MASK;
