@@ -27,6 +27,7 @@ const CACHE_LINE: usize = 64;
 const VALUE_SIZE: usize = CACHE_LINE - KEY_SIZE;
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
+#[repr(C, packed)]
 pub struct CacheValue {
     pub(crate) raw: [u8; VALUE_SIZE],
 }

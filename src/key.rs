@@ -23,8 +23,8 @@ use std::fmt::Display;
 
 pub(crate) const KEY_SIZE: usize = std::mem::size_of::<CacheKey>();
 
-#[repr(C)]
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
+#[repr(C, packed)]
 pub struct CacheKey {
     raw: u64,
 }
