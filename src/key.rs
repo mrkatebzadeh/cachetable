@@ -59,6 +59,12 @@ impl From<&str> for CacheKey {
     }
 }
 
+impl From<u64> for CacheKey {
+    fn from(key: u64) -> Self {
+        Self { raw: key }
+    }
+}
+
 impl Display for CacheKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Key: {}", self.key())
