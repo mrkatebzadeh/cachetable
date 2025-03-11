@@ -48,6 +48,17 @@ impl CacheKey {
     }
 }
 
+impl From<&str> for CacheKey {
+    fn from(key: &str) -> Self {
+        let mut raw = [0u8; KEY_SIZE];
+        let bytes = key.as_bytes();
+        let len = bytes.len().min(KEY_SIZE);
+        Self {
+            raw: u64::from_le_bytes(bytes[..len].try_into().unwrap()),
+        }
+    }
+}
+
 impl Display for CacheKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Key: {}", self.key())

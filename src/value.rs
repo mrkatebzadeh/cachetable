@@ -47,6 +47,16 @@ impl CacheValue {
     }
 }
 
+impl From<&str> for CacheValue {
+    fn from(value: &str) -> Self {
+        let mut raw = [0u8; VALUE_SIZE];
+        let bytes = value.as_bytes();
+        let len = bytes.len().min(VALUE_SIZE);
+        raw[..len].copy_from_slice(&bytes[..len]);
+        Self { raw }
+    }
+}
+
 impl Display for CacheValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
