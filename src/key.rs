@@ -19,7 +19,10 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    hash::{Hash, Hasher},
+};
 
 pub(crate) const KEY_SIZE: usize = std::mem::size_of::<CacheKey>();
 
@@ -62,6 +65,12 @@ impl From<&str> for CacheKey {
 impl From<u64> for CacheKey {
     fn from(key: u64) -> Self {
         Self { raw: key }
+    }
+}
+
+impl Hash for CacheKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.key().hash(state);
     }
 }
 
