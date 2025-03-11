@@ -24,8 +24,8 @@ use cachetable::{CacheKey, CacheTable, CacheValue};
 fn main() {
     let key = CacheKey::new(10);
     let value = CacheValue::new(&[10]);
-    let mut ctable = CacheTable::<4 /* Log size */, 32 /* Bucket size*/>::new();
-
+    let ctable = CacheTable::<4 /* Log size */, 32 /* Bucket size*/>::new();
     ctable.insert(key, value);
+    let value = ctable.get(&key);
 }
 /* main.rs ends here */

@@ -20,11 +20,14 @@
 */
 
 use crate::{bucket::Bucket, key::CacheKey, log::Log, op::Op, value::CacheValue};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::{
+    cell::RefCell,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 
 const BUCKET_SIZE: usize = 8;
 
-pub struct CacheTable<const L: usize, const B: usize> {
+struct InnerCache<const L: usize, const B: usize> {
     buckets: [Bucket<L, BUCKET_SIZE>; B],
     log: Log<L>,
     bkt_mask: usize,
@@ -32,13 +35,13 @@ pub struct CacheTable<const L: usize, const B: usize> {
     log_head: AtomicUsize,
 }
 
-impl<const L: usize, const B: usize> CacheTable<L, B> {
-    pub fn new() -> CacheTable<L, B> {
+impl<const L: usize, const B: usize> InnerCache<L, B> {
+    fn new() -> Self {
         assert!(B.is_power_of_two(), "B must be a power of two!");
         assert!(L.is_power_of_two(), "L must be a power of two!");
         let bkt_mask = B - 1;
         let log_mask = L - 1;
-        CacheTable {
+        Self {
             buckets: [Bucket::<L, BUCKET_SIZE>::default(); B],
             log: Log::<L>::default(),
             bkt_mask,
@@ -47,51 +50,7 @@ impl<const L: usize, const B: usize> CacheTable<L, B> {
         }
     }
 
-    pub fn insert(&mut self, key: CacheKey, value: CacheValue) {
-        let mut op = Op::new();
-        op.key = key;
-        op.value = value;
-        self.insert_op(&op);
-    }
-
-    pub fn get(&self, key: &CacheKey) -> Option<&CacheValue> {
-        let key_raw = key.key();
-        let bkt = self.extract_bkt(key_raw);
-        let tag = self.extract_tag(key_raw);
-
-        let mut slot_idx: Option<usize> = None;
-        for (index, slot) in self.buckets[bkt].slots.iter().enumerate() {
-            if (slot.tag() & self.log_mask) == tag as usize && slot.valid() {
-                slot_idx = Some(index);
-                break;
-            }
-        }
-
-        match slot_idx {
-            Some(slot_idx) => {
-                if self.log.entries[self.buckets[bkt].slots[slot_idx].log_idx()].key == *key {
-                    let value =
-                        &self.log.entries[self.buckets[bkt].slots[slot_idx].log_idx()].value;
-                    Some(value)
-                } else {
-                    None
-                }
-            }
-            None => None,
-        }
-    }
-}
-
-impl<const L: usize, const B: usize> CacheTable<L, B> {
-    fn extract_bkt(&self, key: u64) -> usize {
-        (key as usize) & self.bkt_mask
-    }
-
-    fn extract_tag(&self, key: u64) -> u32 {
-        (key >> self.bkt_mask.count_ones()) as u32
-    }
-
-    fn insert_op(&mut self, op: &Op) {
+    fn insert(&mut self, op: &Op) {
         let key_raw = op.key.key();
         let bkt = self.extract_bkt(key_raw);
         let tag = self.extract_tag(key_raw);
@@ -121,7 +80,66 @@ impl<const L: usize, const B: usize> CacheTable<L, B> {
         log_head = (log_head + 1) % L;
         self.log_head.store(log_head, Ordering::Release);
     }
+
+    fn get(&self, key: &CacheKey) -> Option<CacheValue> {
+        let key_raw = key.key();
+        let bkt = self.extract_bkt(key_raw);
+        let tag = self.extract_tag(key_raw);
+
+        let mut slot_idx: Option<usize> = None;
+        for (index, slot) in self.buckets[bkt].slots.iter().enumerate() {
+            if (slot.tag() & self.log_mask) == tag as usize && slot.valid() {
+                slot_idx = Some(index);
+                break;
+            }
+        }
+
+        match slot_idx {
+            Some(slot_idx) => {
+                if self.log.entries[self.buckets[bkt].slots[slot_idx].log_idx()].key == *key {
+                    let value = self.log.entries[self.buckets[bkt].slots[slot_idx].log_idx()].value;
+                    Some(value)
+                } else {
+                    None
+                }
+            }
+            None => None,
+        }
+    }
+
+    fn extract_bkt(&self, key: u64) -> usize {
+        (key as usize) & self.bkt_mask
+    }
+
+    fn extract_tag(&self, key: u64) -> u32 {
+        (key >> self.bkt_mask.count_ones()) as u32
+    }
 }
+pub struct CacheTable<const L: usize, const B: usize> {
+    inner: RefCell<InnerCache<L, B>>,
+}
+
+impl<const L: usize, const B: usize> CacheTable<L, B> {
+    pub fn new() -> Self {
+        let inner = RefCell::new(InnerCache::new());
+
+        Self { inner }
+    }
+
+    pub fn insert(&self, key: CacheKey, value: CacheValue) {
+        let mut op = Op::new();
+        op.key = key;
+        op.value = value;
+        let mut inner = self.inner.borrow_mut();
+        inner.insert(&op);
+    }
+
+    pub fn get(&self, key: &CacheKey) -> Option<CacheValue> {
+        let inner = self.inner.borrow();
+        inner.get(key)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{key::CacheKey, value::CacheValue};
@@ -137,7 +155,7 @@ mod tests {
     fn insert() {
         let key = CacheKey::new(10);
         let value = CacheValue::new(&[10]);
-        let mut ctable = CacheTable::<2, 32>::new();
+        let ctable = CacheTable::<2, 32>::new();
 
         ctable.insert(key, value);
     }
@@ -147,13 +165,13 @@ mod tests {
         let key = CacheKey::new(10);
         let value = CacheValue::new(&[10]);
 
-        let mut ctable = CacheTable::<2, 32>::new();
+        let ctable = CacheTable::<2, 32>::new();
 
         ctable.insert(key, value.clone());
 
         let get_value = ctable.get(&key);
         assert!(get_value.is_some());
-        assert_eq!(get_value.unwrap(), &value);
+        assert_eq!(get_value.unwrap(), value);
     }
 
     #[test]
@@ -161,7 +179,7 @@ mod tests {
         let mut key = CacheKey::new(10);
         let value = CacheValue::new(&[10]);
 
-        let mut ctable = CacheTable::<2, 32>::new();
+        let ctable = CacheTable::<2, 32>::new();
 
         ctable.insert(key, value.clone());
 
@@ -175,7 +193,7 @@ mod tests {
         let mut key = CacheKey::new(10);
         let value = CacheValue::new(&[10]);
 
-        let mut ctable = CacheTable::<2, 32>::new();
+        let ctable = CacheTable::<2, 32>::new();
 
         ctable.insert(key, value.clone());
         key.set_key(15);
@@ -188,7 +206,7 @@ mod tests {
         let get_value = ctable.get(&key);
 
         assert!(get_value.is_some());
-        assert_eq!(get_value.unwrap(), &value);
+        assert_eq!(get_value.unwrap(), value);
     }
 }
 
