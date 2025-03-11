@@ -19,40 +19,17 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use crate::{
-    key::CacheKey,
-    value::{CacheValue, OP_VALUE_SIZE},
-};
-use std::{
-    fmt::Display,
-    sync::{atomic::AtomicU64, Arc},
-};
-
-pub(crate) type SeqLock = AtomicU64;
-
-const fn find_padding_cust_align(size: usize, align: usize) -> usize {
-    (align - (size % align)) % align
-}
-
-const OP_SIZE_: usize = 32 + OP_VALUE_SIZE;
-const OP_PADDING_SIZE: usize = find_padding_cust_align(OP_SIZE_, 64);
-pub(crate) const OP_SIZE: usize = OP_SIZE_ + OP_PADDING_SIZE;
+use crate::{key::CacheKey, value::CacheValue};
+use std::fmt::Display;
 
 #[derive(Clone)]
-pub struct Op {
-    pub key: CacheKey,
-    pub value: CacheValue,
-    pub(crate) seqlock: Arc<SeqLock>,
-    pub(crate) version: u64,
-    pub(crate) m_id: u8,
-    pub(crate) state: u8,
-    _unused: [u8; 2],
-    pub(crate) key_id: u32,
-    _padding: [u8; OP_PADDING_SIZE],
+pub(crate) struct Op {
+    pub(crate) key: CacheKey,
+    pub(crate) value: CacheValue,
 }
 
 impl Op {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self::default()
     }
 }
@@ -62,13 +39,6 @@ impl Default for Op {
         Self {
             value: CacheValue::default(),
             key: CacheKey::default(),
-            seqlock: Arc::new(SeqLock::new(0)),
-            version: 0,
-            m_id: 0,
-            state: 0,
-            _unused: [0, 0],
-            key_id: 0,
-            _padding: [0; OP_PADDING_SIZE],
         }
     }
 }

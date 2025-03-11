@@ -21,25 +21,21 @@
 
 use std::fmt::Display;
 
-const fn find_padding_cust_align(size: usize, align: usize) -> usize {
-    (align - (size % align)) % align
-}
+use crate::key::KEY_SIZE;
 
 const CACHE_LINE: usize = 64;
-const VALUE_SIZE_: usize = 32;
-const VALUE_SIZE: usize = VALUE_SIZE_ + find_padding_cust_align(VALUE_SIZE_, 64);
-pub const OP_VALUE_SIZE: usize = VALUE_SIZE + find_padding_cust_align(VALUE_SIZE, 32);
+const VALUE_SIZE: usize = CACHE_LINE - KEY_SIZE;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct CacheValue {
-    pub(crate) raw: [u8; OP_VALUE_SIZE],
+    pub(crate) raw: [u8; VALUE_SIZE],
 }
 
 impl CacheValue {
     pub fn new(value: &[u8]) -> Self {
-        let mut raw = [0u8; OP_VALUE_SIZE];
+        let mut raw = [0u8; VALUE_SIZE];
 
-        let len = value.len().min(OP_VALUE_SIZE);
+        let len = value.len().min(VALUE_SIZE);
         raw[..len].copy_from_slice(&value[..len]);
 
         Self { raw }

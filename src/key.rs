@@ -21,6 +21,8 @@
 
 use std::fmt::Display;
 
+pub(crate) const KEY_SIZE: usize = 8;
+
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
 pub struct CacheKey {
