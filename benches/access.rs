@@ -39,8 +39,8 @@ pub fn put_bench(c: &mut Criterion) {
     group.bench_function("HashTable", |b| {
         let mut hashtable = HashMap::<u32, Vec<u32>>::new();
         b.iter(|| {
-            let key = 10;
-            let value = vec![10];
+            let key = black_box(10);
+            let value = black_box(vec![10]);
             hashtable.insert(key, value);
         })
     });
@@ -59,8 +59,8 @@ pub fn get_bench(c: &mut Criterion) {
     });
     group.bench_function("HashTable", |b| {
         let mut hashtable = HashMap::<u32, Vec<u32>>::new();
-        let key = 10;
-        let value = vec![10];
+        let key = black_box(10);
+        let value = black_box(vec![10]);
         hashtable.insert(key, value);
         b.iter(|| {
             let get_value = hashtable.get(&key);
