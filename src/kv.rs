@@ -1,4 +1,4 @@
-/* op.rs --- OP
+/* kv.rs --- KV
 
 *
 * Author: M.R.Siavash Katebzadeh <mr@katebzadeh.xyz>
@@ -19,34 +19,40 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use crate::{key::CacheKey, value::CacheValue};
+use crate::{
+    key::{CacheKey, KEY_SIZE},
+    value::{CacheValue, CACHE_LINE, VALUE_SIZE},
+};
 use std::fmt::Display;
 
+const LOG_ITEM_PADDING: usize = CACHE_LINE - KEY_SIZE - VALUE_SIZE;
 #[derive(Clone)]
-pub(crate) struct Op {
+pub(crate) struct LogItem {
     pub(crate) key: CacheKey,
     pub(crate) value: CacheValue,
+    _padding: [u8; LOG_ITEM_PADDING],
 }
 
-impl Op {
+impl LogItem {
     pub(crate) fn new() -> Self {
         Self::default()
     }
 }
 
-impl Default for Op {
+impl Default for LogItem {
     fn default() -> Self {
         Self {
             value: CacheValue::default(),
             key: CacheKey::default(),
+            _padding: [0; LOG_ITEM_PADDING],
         }
     }
 }
 
-impl Display for Op {
+impl Display for LogItem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({}, {})", self.key, self.value)
     }
 }
 
-/* op.rs ends here */
+/* kv.rs ends here */

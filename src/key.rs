@@ -40,7 +40,7 @@ impl CacheKey {
     pub fn set_key(&mut self, key: u64) {
         self.raw = key;
     }
-
+    #[inline]
     pub fn key(&self) -> u64 {
         let field_ptr = std::ptr::addr_of!(self.raw);
         unsafe { field_ptr.read_unaligned() }

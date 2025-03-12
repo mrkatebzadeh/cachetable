@@ -19,7 +19,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use crate::{bucket::Bucket, key::CacheKey, log::Log, op::Op, value::CacheValue};
+use crate::{bucket::Bucket, key::CacheKey, kv::LogItem, log::Log, value::CacheValue};
 use std::{
     cell::RefCell,
     sync::atomic::{AtomicUsize, Ordering},
@@ -50,14 +50,14 @@ impl<const L: usize, const B: usize> InnerCache<L, B> {
         }
     }
 
-    fn insert(&mut self, op: &Op) {
-        let key_raw = op.key.key();
+    fn insert(&mut self, item: &LogItem) {
+        let key_raw = item.key.key();
         let bkt = self.extract_bkt(key_raw);
         let tag = self.extract_tag(key_raw);
 
         let mut slot_idx: Option<usize> = None;
         for (index, slot) in self.buckets[bkt].slots.iter().enumerate() {
-            if (slot.tag() & self.log_mask) == tag as usize || !slot.valid() {
+            if !slot.valid() || ((slot.tag() & self.log_mask) == tag as usize) {
                 slot_idx = Some(index);
                 break;
             }
@@ -75,7 +75,7 @@ impl<const L: usize, const B: usize> InnerCache<L, B> {
         self.buckets[bkt].slots[slot_idx].set_log_idx(log_head);
         self.buckets[bkt].slots[slot_idx].set_tag(tag as usize);
 
-        self.log.entries[log_head & self.log_mask] = op.clone();
+        self.log.entries[log_head & self.log_mask] = item.clone();
 
         log_head = (log_head + 1) % L;
         self.log_head.store(log_head, Ordering::Release);
@@ -107,10 +107,12 @@ impl<const L: usize, const B: usize> InnerCache<L, B> {
         }
     }
 
+    #[inline]
     fn extract_bkt(&self, key: u64) -> usize {
         (key as usize) & self.bkt_mask
     }
 
+    #[inline]
     fn extract_tag(&self, key: u64) -> u32 {
         (key >> self.bkt_mask.count_ones()) as u32
     }
@@ -127,11 +129,11 @@ impl<const L: usize, const B: usize> CacheTable<L, B> {
     }
 
     pub fn insert(&self, key: CacheKey, value: CacheValue) {
-        let mut op = Op::new();
-        op.key = key;
-        op.value = value;
+        let mut item = LogItem::new();
+        item.key = key;
+        item.value = value;
         let mut inner = self.inner.borrow_mut();
-        inner.insert(&op);
+        inner.insert(&item);
     }
 
     pub fn get(&self, key: &CacheKey) -> Option<CacheValue> {

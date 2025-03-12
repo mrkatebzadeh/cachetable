@@ -21,16 +21,16 @@
 
 use std::fmt::Display;
 
-use crate::op::Op;
+use crate::kv::LogItem;
 
 pub(crate) struct Log<const N: usize> {
-    pub(crate) entries: [Op; N],
+    pub(crate) entries: [LogItem; N],
 }
 
 impl<const N: usize> Default for Log<N> {
     fn default() -> Self {
         Self {
-            entries: std::array::from_fn(|_| Op::default()),
+            entries: std::array::from_fn(|_| LogItem::default()),
         }
     }
 }

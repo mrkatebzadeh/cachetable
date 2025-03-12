@@ -22,8 +22,8 @@
 mod bucket;
 mod cachetable;
 mod key;
+mod kv;
 mod log;
-mod op;
 mod slot;
 mod value;
 

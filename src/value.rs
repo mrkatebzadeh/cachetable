@@ -23,8 +23,8 @@ use std::fmt::Display;
 
 use crate::key::KEY_SIZE;
 
-const CACHE_LINE: usize = 64;
-const VALUE_SIZE: usize = CACHE_LINE - KEY_SIZE;
+pub(crate) const CACHE_LINE: usize = 64;
+pub(crate) const VALUE_SIZE: usize = CACHE_LINE - KEY_SIZE - 1 - 8;
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 #[repr(C, packed)]
