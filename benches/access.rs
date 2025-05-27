@@ -21,21 +21,21 @@
 
 use std::collections::HashMap;
 
-use cachetable::{CacheKey, CacheTable, CacheValue};
+use cachetable::CacheTable;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 pub fn put_bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("Put");
     group.bench_function("CacheTable", |b| {
-        let mut cachetable = CacheTable::<4, 32>::new();
+        let cachetable = CacheTable::<u64, Vec<u32>, 4, 32>::new();
         b.iter(|| {
-            let key = CacheKey::new(black_box(10));
-            let value = CacheValue::new(black_box(&[10]));
+            let key = black_box(10);
+            let value = black_box(vec![10]);
             cachetable.insert(key, value);
         })
     });
     group.bench_function("HashTable", |b| {
-        let mut hashtable = HashMap::<u32, Vec<u32>>::new();
+        let mut hashtable = HashMap::<u64, Vec<u32>>::new();
         b.iter(|| {
             let key = black_box(10);
             let value = black_box(vec![10]);
@@ -47,16 +47,16 @@ pub fn put_bench(c: &mut Criterion) {
 pub fn get_bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("Get");
     group.bench_function("CacheTable", |b| {
-        let mut cachetable = CacheTable::<4, 32>::new();
-        let key = CacheKey::new(black_box(10));
-        let value = CacheValue::new(black_box(&[10]));
+        let cachetable = CacheTable::<u64, Vec<u32>, 4, 32>::new();
+        let key = black_box(10);
+        let value = black_box(vec![10]);
         cachetable.insert(key, value);
         b.iter(|| {
             let get_value = cachetable.get(&key);
         })
     });
     group.bench_function("HashTable", |b| {
-        let mut hashtable = HashMap::<u32, Vec<u32>>::new();
+        let mut hashtable = HashMap::<u64, Vec<u32>>::new();
         let key = black_box(10);
         let value = black_box(vec![10]);
         hashtable.insert(key, value);

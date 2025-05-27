@@ -19,12 +19,12 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use cachetable::{CacheKey, CacheTable, CacheValue};
+use cachetable::CacheTable;
 
 fn main() {
-    let key = CacheKey::new(10);
-    let value = CacheValue::new(&[10]);
-    let ctable = CacheTable::<4 /* Log size */, 32 /* Bucket size*/>::new();
+    let key = 10;
+    let value = vec![10];
+    let ctable = CacheTable::<u32, Vec<u32>, 4 /* Log size */, 32 /* Bucket size*/>::new();
     ctable.insert(key, value);
     let value = ctable.get(&key);
 }
