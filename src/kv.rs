@@ -19,37 +19,31 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use crate::{
-    key::{CacheKey, KEY_SIZE},
-    value::{CacheValue, CACHE_LINE, VALUE_SIZE},
-};
 use std::fmt::Display;
 
-const LOG_ITEM_PADDING: usize = CACHE_LINE - KEY_SIZE - VALUE_SIZE;
 #[derive(Clone)]
-pub(crate) struct LogItem {
-    pub(crate) key: CacheKey,
-    pub(crate) value: CacheValue,
-    _padding: [u8; LOG_ITEM_PADDING],
+#[repr(align(64))]
+pub(crate) struct LogItem<K, V> {
+    pub(crate) key: K,
+    pub(crate) value: V,
 }
 
-impl LogItem {
+impl<K: Default, V: Default> LogItem<K, V> {
     pub(crate) fn new() -> Self {
         Self::default()
     }
 }
 
-impl Default for LogItem {
+impl<K: Default, V: Default> Default for LogItem<K, V> {
     fn default() -> Self {
         Self {
-            value: CacheValue::default(),
-            key: CacheKey::default(),
-            _padding: [0; LOG_ITEM_PADDING],
+            value: V::default(),
+            key: K::default(),
         }
     }
 }
 
-impl Display for LogItem {
+impl<K: Display, V: Display> Display for LogItem<K, V> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({}, {})", self.key, self.value)
     }

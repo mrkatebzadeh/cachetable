@@ -21,13 +21,9 @@
 
 mod bucket;
 mod cachetable;
-mod key;
 mod kv;
 mod log;
 mod slot;
-mod value;
 
 pub use cachetable::CacheTable;
-pub use key::CacheKey;
-pub use value::CacheValue;
 /* lib.rs ends here */
