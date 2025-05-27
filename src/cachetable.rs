@@ -19,23 +19,27 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use crate::{bucket::Bucket, key::CacheKey, kv::LogItem, log::Log, value::CacheValue};
+use crate::{bucket::Bucket, kv::LogItem, log::Log};
+use std::hash::{Hash, Hasher};
 use std::{
     cell::RefCell,
     sync::atomic::{AtomicUsize, Ordering},
 };
+use wyhash2::WyHash;
 
 const BUCKET_SIZE: usize = 8;
 
-struct InnerCache<const L: usize, const B: usize> {
+struct InnerCache<K, V, const L: usize, const B: usize> {
     buckets: [Bucket<L, BUCKET_SIZE>; B],
-    log: Log<L>,
+    log: Log<K, V, L>,
     bkt_mask: usize,
     log_mask: usize,
     log_head: AtomicUsize,
 }
 
-impl<const L: usize, const B: usize> InnerCache<L, B> {
+impl<K: Default + Hash + Eq + PartialEq, V: Default + Clone, const L: usize, const B: usize>
+    InnerCache<K, V, L, B>
+{
     fn new() -> Self {
         assert!(B.is_power_of_two(), "B must be a power of two!");
         assert!(L.is_power_of_two(), "L must be a power of two!");
@@ -43,17 +47,19 @@ impl<const L: usize, const B: usize> InnerCache<L, B> {
         let log_mask = L - 1;
         Self {
             buckets: [Bucket::<L, BUCKET_SIZE>::default(); B],
-            log: Log::<L>::default(),
+            log: Log::<K, V, L>::default(),
             bkt_mask,
             log_mask,
             log_head: AtomicUsize::new(0),
         }
     }
 
-    fn insert(&mut self, item: &LogItem) {
-        let key_raw = item.key.key();
-        let bkt = self.extract_bkt(key_raw);
-        let tag = self.extract_tag(key_raw);
+    fn insert(&mut self, item: LogItem<K, V>) {
+        let mut hasher = WyHash::with_seed(0);
+        item.key.hash(&mut hasher);
+        let key_hash = hasher.finish();
+        let bkt = self.extract_bkt(key_hash);
+        let tag = self.extract_tag(key_hash);
 
         let mut slot_idx: Option<usize> = None;
         for (index, slot) in self.buckets[bkt].slots.iter().enumerate() {
@@ -75,16 +81,18 @@ impl<const L: usize, const B: usize> InnerCache<L, B> {
         self.buckets[bkt].slots[slot_idx].set_log_idx(log_head);
         self.buckets[bkt].slots[slot_idx].set_tag(tag as usize);
 
-        self.log.entries[log_head & self.log_mask] = item.clone();
+        self.log.entries[log_head & self.log_mask] = item;
 
         log_head = (log_head + 1) % L;
         self.log_head.store(log_head, Ordering::Release);
     }
 
-    fn get(&self, key: &CacheKey) -> Option<CacheValue> {
-        let key_raw = key.key();
-        let bkt = self.extract_bkt(key_raw);
-        let tag = self.extract_tag(key_raw);
+    fn get(&self, key: &K) -> Option<V> {
+        let mut hasher = WyHash::with_seed(0);
+        key.hash(&mut hasher);
+        let key_hash = hasher.finish();
+        let bkt = self.extract_bkt(key_hash);
+        let tag = self.extract_tag(key_hash);
 
         let mut slot_idx: Option<usize> = None;
         for (index, slot) in self.buckets[bkt].slots.iter().enumerate() {
@@ -97,7 +105,9 @@ impl<const L: usize, const B: usize> InnerCache<L, B> {
         match slot_idx {
             Some(slot_idx) => {
                 if self.log.entries[self.buckets[bkt].slots[slot_idx].log_idx()].key == *key {
-                    let value = self.log.entries[self.buckets[bkt].slots[slot_idx].log_idx()].value;
+                    let value = self.log.entries[self.buckets[bkt].slots[slot_idx].log_idx()]
+                        .value
+                        .clone();
                     Some(value)
                 } else {
                     None
@@ -117,57 +127,65 @@ impl<const L: usize, const B: usize> InnerCache<L, B> {
         (key >> self.bkt_mask.count_ones()) as u32
     }
 }
-pub struct CacheTable<const L: usize, const B: usize> {
-    inner: RefCell<InnerCache<L, B>>,
+pub struct CacheTable<K, V, const L: usize, const B: usize> {
+    inner: RefCell<InnerCache<K, V, L, B>>,
 }
 
-impl<const L: usize, const B: usize> CacheTable<L, B> {
+impl<K: Default + Hash + Eq + PartialEq, V: Default + Clone, const L: usize, const B: usize>
+    CacheTable<K, V, L, B>
+{
     pub fn new() -> Self {
-        let inner = RefCell::new(InnerCache::new());
-
-        Self { inner }
+        Self::default()
     }
 
-    pub fn insert(&self, key: CacheKey, value: CacheValue) {
+    pub fn insert(&self, key: K, value: V) {
         let mut item = LogItem::new();
         item.key = key;
         item.value = value;
         let mut inner = self.inner.borrow_mut();
-        inner.insert(&item);
+        inner.insert(item);
     }
 
-    pub fn get(&self, key: &CacheKey) -> Option<CacheValue> {
+    pub fn get(&self, key: &K) -> Option<V> {
         let inner = self.inner.borrow();
         inner.get(key)
     }
 }
 
+impl<K: Default + Hash + Eq + PartialEq, V: Default + Clone, const L: usize, const B: usize> Default
+    for CacheTable<K, V, L, B>
+{
+    fn default() -> Self {
+        let inner = RefCell::new(InnerCache::new());
+        Self { inner }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{key::CacheKey, value::CacheValue};
 
     use super::CacheTable;
 
     #[test]
     fn init() {
-        let _ = CacheTable::<2, 32>::new();
+        let _ = CacheTable::<u32, u32, 2, 32>::new();
     }
 
     #[test]
     fn insert() {
-        let key = CacheKey::new(10);
-        let value = CacheValue::new(&[10]);
-        let ctable = CacheTable::<2, 32>::new();
+        let key = 10;
+        let value = vec![10];
+        let ctable = CacheTable::<u32, Vec<u32>, 2, 32>::new();
 
         ctable.insert(key, value);
     }
 
     #[test]
     fn get() {
-        let key = CacheKey::new(10);
-        let value = CacheValue::new(&[10]);
+        let key = 10;
+        let value = vec![10];
 
-        let ctable = CacheTable::<2, 32>::new();
+        let ctable = CacheTable::<u32, Vec<u32>, 2, 32>::new();
 
         ctable.insert(key, value.clone());
 
@@ -178,33 +196,33 @@ mod tests {
 
     #[test]
     fn get_fail() {
-        let mut key = CacheKey::new(10);
-        let value = CacheValue::new(&[10]);
+        let mut key = 10;
+        let value = vec![10];
 
-        let ctable = CacheTable::<2, 32>::new();
+        let ctable = CacheTable::<u32, Vec<u32>, 2, 32>::new();
 
-        ctable.insert(key, value.clone());
+        ctable.insert(key, value);
 
-        key.set_key(11);
+        key = 11;
         let get_value = ctable.get(&key);
         assert!(get_value.is_none());
     }
 
     #[test]
     fn log_wrap() {
-        let mut key = CacheKey::new(10);
-        let value = CacheValue::new(&[10]);
+        let mut key = 10;
+        let value = vec![10];
 
-        let ctable = CacheTable::<2, 32>::new();
+        let ctable = CacheTable::<u32, Vec<u32>, 2, 32>::new();
 
         ctable.insert(key, value.clone());
-        key.set_key(15);
+        key = 15;
         ctable.insert(key, value.clone());
 
-        key.set_key(55);
+        key = 55;
         ctable.insert(key, value.clone());
 
-        key.set_key(15);
+        key = 15;
         let get_value = ctable.get(&key);
 
         assert!(get_value.is_some());
