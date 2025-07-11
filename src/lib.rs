@@ -19,11 +19,11 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-mod bucket;
+#![feature(portable_simd)]
 mod cachetable;
 mod kv;
 mod log;
-mod slot;
+mod set;
 
 pub use cachetable::CacheTable;
 /* lib.rs ends here */

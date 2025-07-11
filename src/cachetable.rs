@@ -19,7 +19,8 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use crate::{bucket::Bucket, kv::LogItem, log::Log};
+use crate::set::{Set, WAYS};
+use crate::{kv::LogItem, log::Log};
 use std::hash::{Hash, Hasher};
 use std::{
     cell::RefCell,
@@ -27,26 +28,28 @@ use std::{
 };
 use wyhash2::WyHash;
 
-const BUCKET_SIZE: usize = 8;
-
-struct InnerCache<K, V, const L: usize, const B: usize> {
-    buckets: [Bucket<L, BUCKET_SIZE>; B],
+struct InnerCache<K, V, const L: usize, const S: usize> {
+    sets: [Set; S],
     log: Log<K, V, L>,
     bkt_mask: usize,
     log_mask: usize,
     log_head: AtomicUsize,
 }
 
-impl<K: Default + Hash + Eq + PartialEq, V: Default + Clone, const L: usize, const B: usize>
-    InnerCache<K, V, L, B>
+impl<
+        K: Default + Hash + Eq + PartialEq + Clone,
+        V: Default + Clone,
+        const L: usize,
+        const S: usize,
+    > InnerCache<K, V, L, S>
 {
     fn new() -> Self {
-        assert!(B.is_power_of_two(), "B must be a power of two!");
+        assert!(S.is_power_of_two(), "S must be a power of two!");
         assert!(L.is_power_of_two(), "L must be a power of two!");
-        let bkt_mask = B - 1;
+        let bkt_mask = S - 1;
         let log_mask = L - 1;
         Self {
-            buckets: [Bucket::<L, BUCKET_SIZE>::default(); B],
+            sets: [Set::default(); S],
             log: Log::<K, V, L>::default(),
             bkt_mask,
             log_mask,
@@ -54,60 +57,60 @@ impl<K: Default + Hash + Eq + PartialEq, V: Default + Clone, const L: usize, con
         }
     }
 
-    fn insert(&mut self, item: LogItem<K, V>) {
-        let mut hasher = WyHash::with_seed(0);
-        item.key.hash(&mut hasher);
-        let key_hash = hasher.finish();
-        let bkt = self.extract_bkt(key_hash);
-        let tag = self.extract_tag(key_hash);
-
-        let mut slot_idx: Option<usize> = None;
-        for (index, slot) in self.buckets[bkt].slots.iter().enumerate() {
-            if !slot.valid() || ((slot.tag() & self.log_mask) == tag as usize) {
-                slot_idx = Some(index);
-                break;
-            }
-        }
-
-        if slot_idx.is_none() {
-            slot_idx = Some((tag & (BUCKET_SIZE - 1) as u32) as usize);
-        }
-
-        let slot_idx = slot_idx.unwrap();
-
-        let mut log_head = self.log_head.load(Ordering::Acquire);
-
-        self.buckets[bkt].slots[slot_idx].set_valid(true);
-        self.buckets[bkt].slots[slot_idx].set_log_idx(log_head);
-        self.buckets[bkt].slots[slot_idx].set_tag(tag as usize);
-
-        self.log.entries[log_head & self.log_mask] = item;
-
-        log_head = (log_head + 1) % L;
-        self.log_head.store(log_head, Ordering::Release);
-    }
-
-    fn get(&self, key: &K) -> Option<V> {
+    #[inline]
+    fn probe(&self, key: &K) -> (usize, u8, Option<usize>) {
         let mut hasher = WyHash::with_seed(0);
         key.hash(&mut hasher);
         let key_hash = hasher.finish();
-        let bkt = self.extract_bkt(key_hash);
-        let tag = self.extract_tag(key_hash);
+        let set = self.extract_set(key_hash);
+        let finger = self.extract_finger(key_hash);
+        (set, finger, self.sets[set].probe(finger))
+    }
 
-        let mut slot_idx: Option<usize> = None;
-        for (index, slot) in self.buckets[bkt].slots.iter().enumerate() {
-            if (slot.tag() & self.log_mask) == tag as usize && slot.valid() {
-                slot_idx = Some(index);
-                break;
+    #[inline]
+    fn invalid(&mut self, key: &K) {
+        match self.probe(key) {
+            (_, _, None) => {}
+            (set, _, Some(idx)) => {
+                self.sets[set].valid &= !(1 << idx);
             }
         }
+    }
+    fn insert(&mut self, item: LogItem<K, V>) {
+        let (set, finger, way) = self.probe(&item.key);
 
-        match slot_idx {
-            Some(slot_idx) => {
-                if self.log.entries[self.buckets[bkt].slots[slot_idx].log_idx()].key == *key {
-                    let value = self.log.entries[self.buckets[bkt].slots[slot_idx].log_idx()]
-                        .value
-                        .clone();
+        match way {
+            None => {
+                let mut log_head = self.log_head.load(Ordering::Acquire);
+                let key = self.log.entries[log_head].key.clone();
+                self.invalid(&key);
+                let slot_idx = self.sets[set].next as usize;
+                self.sets[set].next = (self.sets[set].next + 1) % WAYS as u32;
+
+                self.sets[set].set_finger(slot_idx, finger);
+                self.sets[set].valid |= 1 << slot_idx;
+                self.sets[set].pointers[slot_idx] = log_head;
+
+                self.log.entries[log_head & self.log_mask] = item;
+
+                log_head = (log_head + 1) % L;
+                self.log_head.store(log_head, Ordering::Release);
+            }
+            Some(idx) => {
+                let pointer = self.sets[set].pointers[idx];
+                self.log.entries[pointer] = item;
+            }
+        };
+    }
+
+    fn get(&self, key: &K) -> Option<V> {
+        let (set, _, way) = self.probe(key);
+        match way {
+            Some(idx) => {
+                let valid = (self.sets[set].valid & (1 << idx)) != 0;
+                if valid {
+                    let pointer = self.sets[set].pointers[idx];
+                    let value = self.log.entries[pointer].value.clone();
                     Some(value)
                 } else {
                     None
@@ -118,21 +121,26 @@ impl<K: Default + Hash + Eq + PartialEq, V: Default + Clone, const L: usize, con
     }
 
     #[inline]
-    fn extract_bkt(&self, key: u64) -> usize {
+    fn extract_set(&self, key: u64) -> usize {
         (key as usize) & self.bkt_mask
     }
 
     #[inline]
-    fn extract_tag(&self, key: u64) -> u32 {
-        (key >> self.bkt_mask.count_ones()) as u32
+    fn extract_finger(&self, key: u64) -> u8 {
+        (key & 0xFF) as u8
     }
 }
+
 pub struct CacheTable<K, V, const L: usize, const B: usize> {
     inner: RefCell<InnerCache<K, V, L, B>>,
 }
 
-impl<K: Default + Hash + Eq + PartialEq, V: Default + Clone, const L: usize, const B: usize>
-    CacheTable<K, V, L, B>
+impl<
+        K: Default + Hash + Eq + PartialEq + Clone,
+        V: Default + Clone,
+        const L: usize,
+        const B: usize,
+    > CacheTable<K, V, L, B>
 {
     pub fn new() -> Self {
         Self::default()
@@ -152,8 +160,12 @@ impl<K: Default + Hash + Eq + PartialEq, V: Default + Clone, const L: usize, con
     }
 }
 
-impl<K: Default + Hash + Eq + PartialEq, V: Default + Clone, const L: usize, const B: usize> Default
-    for CacheTable<K, V, L, B>
+impl<
+        K: Default + Hash + Eq + PartialEq + Clone,
+        V: Default + Clone,
+        const L: usize,
+        const B: usize,
+    > Default for CacheTable<K, V, L, B>
 {
     fn default() -> Self {
         let inner = RefCell::new(InnerCache::new());
