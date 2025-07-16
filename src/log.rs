@@ -23,11 +23,11 @@ use std::fmt::Display;
 
 use crate::kv::LogItem;
 
-pub(crate) struct Log<Key, Value, const LogSize: usize> {
-    pub(crate) entries: [LogItem<Key, Value>; LogSize],
+pub(crate) struct Log<Key, Value, const LOG_SIZE: usize> {
+    pub(crate) entries: [LogItem<Key, Value>; LOG_SIZE],
 }
 
-impl<Key: Default, Value: Default, const LogSize: usize> Default for Log<Key, Value, LogSize> {
+impl<Key: Default, Value: Default, const LOG_SIZE: usize> Default for Log<Key, Value, LOG_SIZE> {
     fn default() -> Self {
         Self {
             entries: std::array::from_fn(|_| LogItem::default()),
@@ -35,14 +35,14 @@ impl<Key: Default, Value: Default, const LogSize: usize> Default for Log<Key, Va
     }
 }
 
-impl<Key: Display, Value: Display, const LogSize: usize> Display for Log<Key, Value, LogSize> {
+impl<Key: Display, Value: Display, const LOG_SIZE: usize> Display for Log<Key, Value, LOG_SIZE> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "{}",
             self.entries
                 .iter()
-                .map(|item| format!("{}", item))
+                .map(|item| format!("{item}"))
                 .collect::<Vec<String>>()
                 .join("\n")
         )
