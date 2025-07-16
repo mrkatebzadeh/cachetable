@@ -19,26 +19,26 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use std::collections::HashMap;
+use std::{collections::HashMap, hint::black_box};
 
 use cachetable::CacheTable;
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 
 pub fn put_bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("Put");
     group.bench_function("CacheTable", |b| {
-        let cachetable = CacheTable::<u64, Vec<u32>, 4, 32>::new();
+        let cachetable = CacheTable::<u64, u64, 4, 32>::new();
         b.iter(|| {
             let key = black_box(10);
-            let value = black_box(vec![10]);
+            let value = black_box(10);
             cachetable.insert(key, value);
         })
     });
     group.bench_function("HashTable", |b| {
-        let mut hashtable = HashMap::<u64, Vec<u32>>::new();
+        let mut hashtable = HashMap::<u64, u64>::new();
         b.iter(|| {
             let key = black_box(10);
-            let value = black_box(vec![10]);
+            let value = black_box(10);
             hashtable.insert(key, value);
         })
     });
@@ -47,21 +47,21 @@ pub fn put_bench(c: &mut Criterion) {
 pub fn get_bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("Get");
     group.bench_function("CacheTable", |b| {
-        let cachetable = CacheTable::<u64, Vec<u32>, 4, 32>::new();
+        let cachetable = CacheTable::<u64, u64, 4, 32>::new();
         let key = black_box(10);
-        let value = black_box(vec![10]);
+        let value = black_box(10);
         cachetable.insert(key, value);
         b.iter(|| {
-            let get_value = cachetable.get(&key);
+            black_box(cachetable.get(&key));
         })
     });
     group.bench_function("HashTable", |b| {
-        let mut hashtable = HashMap::<u64, Vec<u32>>::new();
+        let mut hashtable = HashMap::<u64, u64>::new();
         let key = black_box(10);
-        let value = black_box(vec![10]);
+        let value = black_box(10);
         hashtable.insert(key, value);
         b.iter(|| {
-            let get_value = hashtable.get(&key);
+            black_box(hashtable.get(&key));
         })
     });
 }

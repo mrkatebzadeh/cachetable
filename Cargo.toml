@@ -7,8 +7,21 @@ edition = "2021"
 wyhash2 = "0.2.1"
 
 [dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.6", features = ["html_reports"] }
+rand = "0.9.1"
 
 [[bench]]
 name = "access"
 harness = false
+
+
+[[bench]]
+name = "ycsb"
+harness = false
+
+[profile.release]
+opt-level = 3
+debug = 2
+split-debuginfo = "unpacked"
+strip = false
+lto = false
