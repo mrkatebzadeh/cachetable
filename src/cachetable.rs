@@ -21,11 +21,8 @@
 
 use crate::set::Set;
 use crate::{kv::LogItem, log::Log};
+use std::cell::RefCell;
 use std::hash::{Hash, Hasher};
-use std::{
-    cell::RefCell,
-    sync::atomic::{AtomicUsize, Ordering},
-};
 use wyhash2::WyHash;
 
 struct InnerCache<K, V, const L: usize, const S: usize> {
@@ -33,7 +30,7 @@ struct InnerCache<K, V, const L: usize, const S: usize> {
     log: Log<K, V, L>,
     set_mask: usize,
     log_mask: usize,
-    log_head: AtomicUsize,
+    log_head: usize,
 }
 
 impl<
@@ -53,7 +50,7 @@ impl<
             log: Log::<K, V, L>::default(),
             set_mask: bkt_mask,
             log_mask,
-            log_head: AtomicUsize::new(0),
+            log_head: 0,
         }
     }
 
@@ -82,7 +79,7 @@ impl<
 
         match way {
             None => {
-                let mut log_head = self.log_head.load(Ordering::Acquire);
+                let mut log_head = self.log_head;
                 let old_key = self.log.entries[log_head].key.clone();
                 self.invalid(&old_key);
                 let slot = self.sets[set].next_slot();
@@ -93,7 +90,7 @@ impl<
 
                 self.log.entries[log_head & self.log_mask] = item;
                 log_head = (log_head + 1) % L;
-                self.log_head.store(log_head, Ordering::Release);
+                self.log_head = log_head;
             }
             Some(slot) => {
                 let pointer = self.sets[set].pointers[slot];
