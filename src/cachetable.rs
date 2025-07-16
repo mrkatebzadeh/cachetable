@@ -19,7 +19,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use crate::set::{Set, WAYS};
+use crate::set::Set;
 use crate::{kv::LogItem, log::Log};
 use std::hash::{Hash, Hasher};
 use std::{
@@ -31,7 +31,7 @@ use wyhash2::WyHash;
 struct InnerCache<K, V, const L: usize, const S: usize> {
     sets: [Set; S],
     log: Log<K, V, L>,
-    bkt_mask: usize,
+    set_mask: usize,
     log_mask: usize,
     log_head: AtomicUsize,
 }
@@ -51,7 +51,7 @@ impl<
         Self {
             sets: [Set::default(); S],
             log: Log::<K, V, L>::default(),
-            bkt_mask,
+            set_mask: bkt_mask,
             log_mask,
             log_head: AtomicUsize::new(0),
         }
@@ -71,50 +71,47 @@ impl<
     fn invalid(&mut self, key: &K) {
         match self.probe(key) {
             (_, _, None) => {}
-            (set, _, Some(idx)) => {
-                self.sets[set].valid &= !(1 << idx);
+            (set, _, Some(slot)) => {
+                self.sets[set].valid_mask &= !(1 << slot);
             }
         }
     }
+
     fn insert(&mut self, item: LogItem<K, V>) {
         let (set, finger, way) = self.probe(&item.key);
 
         match way {
             None => {
                 let mut log_head = self.log_head.load(Ordering::Acquire);
-                let key = self.log.entries[log_head].key.clone();
-                self.invalid(&key);
-                let slot_idx = self.sets[set].next as usize;
-                self.sets[set].next = (self.sets[set].next + 1) % WAYS as u32;
+                let old_key = self.log.entries[log_head].key.clone();
+                self.invalid(&old_key);
+                let slot = self.sets[set].next_slot();
 
-                self.sets[set].set_finger(slot_idx, finger);
-                self.sets[set].valid |= 1 << slot_idx;
-                self.sets[set].pointers[slot_idx] = log_head;
+                self.sets[set].set_finger(slot, finger);
+                self.sets[set].valid_mask |= 1 << slot;
+                self.sets[set].pointers[slot] = log_head;
 
                 self.log.entries[log_head & self.log_mask] = item;
-
                 log_head = (log_head + 1) % L;
                 self.log_head.store(log_head, Ordering::Release);
             }
-            Some(idx) => {
-                let pointer = self.sets[set].pointers[idx];
+            Some(slot) => {
+                let pointer = self.sets[set].pointers[slot];
                 self.log.entries[pointer] = item;
             }
-        };
+        }
     }
 
     fn get(&self, key: &K) -> Option<V> {
-        let (set, _, way) = self.probe(key);
-        match way {
-            Some(idx) => {
-                let valid = (self.sets[set].valid & (1 << idx)) != 0;
-                if valid {
-                    let pointer = self.sets[set].pointers[idx];
-                    let value = self.log.entries[pointer].value.clone();
-                    Some(value)
-                } else {
-                    None
+        let (set, _, slot) = self.probe(key);
+        match slot {
+            Some(slot) => {
+                if (self.sets[set].valid_mask & (1 << slot)) == 0 {
+                    return None;
                 }
+
+                let log_pos = self.sets[set].pointers[slot];
+                Some(self.log.entries[log_pos].value.clone())
             }
             None => None,
         }
@@ -122,7 +119,7 @@ impl<
 
     #[inline]
     fn extract_set(&self, key: u64) -> usize {
-        (key as usize) & self.bkt_mask
+        (key as usize) & self.set_mask
     }
 
     #[inline]

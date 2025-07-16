@@ -20,43 +20,73 @@
 */
 
 use std::simd::{cmp::SimdPartialEq, u8x16};
+pub(crate) const SIMD_SIZE: usize = 16;
 
-pub(crate) const WAYS: usize = 16;
-
+#[repr(C)]
 #[derive(Debug, Clone, Copy)]
-pub struct Set {
-    pub fingers: u8x16,
-    pub valid: u32,
-    pub next: u32,
-    pub pointers: [usize; WAYS],
+pub(crate) struct Set {
+    pub(crate) fingers: u8x16,
+    pub(crate) valid_mask: u16,
+    pub(crate) _reserved: u16,
+    pub(crate) next: usize,
+    pub(crate) pointers: [usize; SIMD_SIZE],
 }
+
 impl Default for Set {
     fn default() -> Self {
         Self {
             fingers: u8x16::splat(0),
-            valid: 0,
+            valid_mask: 0,
             next: 0,
-            pointers: [0; WAYS],
+            _reserved: 0,
+            pointers: [0; SIMD_SIZE],
         }
     }
 }
 
+const LANE_MASKS: [u8x16; SIMD_SIZE] = {
+    let mut masks = [u8x16::splat(0); SIMD_SIZE];
+    let mut i = 0;
+    while i < SIMD_SIZE {
+        let mut arr = [0u8; SIMD_SIZE];
+        arr[i] = 0xFF;
+        masks[i] = u8x16::from_array(arr);
+        i += 1;
+    }
+    masks
+};
+
 impl Set {
     #[inline(always)]
-    pub fn probe(&self, needle: u8) -> Option<usize> {
-        let cmp_mask = self.fingers.simd_eq(u8x16::splat(needle)).to_bitmask();
-        let masked = cmp_mask & self.valid as u64;
-
-        if masked == 0 {
-            None
-        } else {
-            Some(masked.trailing_zeros() as usize)
+    pub fn next_slot(&mut self) -> usize {
+        if self.valid_mask != u16::MAX {
+            let inv_mask = !self.valid_mask;
+            let first_zero = inv_mask.trailing_zeros() as usize;
+            return first_zero;
         }
+
+        let slot = self.next;
+        self.next = (self.next + 1) % SIMD_SIZE;
+        slot
     }
 
     #[inline(always)]
-    pub fn set_finger(&mut self, index: usize, value: u8) {
-        self.fingers[index] = value;
+    pub fn set_finger(&mut self, slot: usize, value: u8) {
+        let value_vec = u8x16::splat(value);
+        let mask = LANE_MASKS[slot];
+        self.fingers = (self.fingers & !mask) | (value_vec & mask);
+    }
+
+    #[inline(always)]
+    pub fn probe(&self, needle: u8) -> Option<usize> {
+        let simd_needle = u8x16::splat(needle);
+        let cmp_mask = self.fingers.simd_eq(simd_needle).to_bitmask();
+        let live = cmp_mask as u16 & self.valid_mask;
+        if live != 0 {
+            let slot = live.trailing_zeros() as usize;
+            return Some(slot);
+        }
+        None
     }
 }
 /* set.rs ends here */
