@@ -19,6 +19,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use std::hint::black_box;
 use cachetable::CacheTable;
 
 fn main() {
@@ -26,6 +27,6 @@ fn main() {
     let value = vec![10];
     let ctable = CacheTable::<u32, Vec<u32>, 4 /* Log size */, 32 /* Bucket size*/>::new();
     ctable.insert(key, value);
-    let value = ctable.get(&key);
+    black_box(ctable.get(&key));
 }
 /* main.rs ends here */
