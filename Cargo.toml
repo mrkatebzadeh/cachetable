@@ -19,6 +19,10 @@ harness = false
 name = "ycsb"
 harness = false
 
+[[bench]]
+name = "sharded"
+harness = false
+
 [profile.release]
 opt-level = 3
 debug = 2

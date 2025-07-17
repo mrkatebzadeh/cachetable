@@ -20,10 +20,13 @@
 */
 
 #![feature(portable_simd)]
+#![feature(thread_id_value)]
 mod cachetable;
 mod kv;
 mod log;
 mod set;
+mod shardedtable;
 
 pub use cachetable::CacheTable;
+pub use shardedtable::ShardedTable;
 /* lib.rs ends here */
