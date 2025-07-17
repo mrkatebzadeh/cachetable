@@ -25,8 +25,8 @@ mod cachetable;
 mod kv;
 mod log;
 mod set;
-mod shardedtable;
+mod shard;
 
 pub use cachetable::CacheTable;
-pub use shardedtable::ShardedTable;
+pub use shard::ShardedTable;
 /* lib.rs ends here */
