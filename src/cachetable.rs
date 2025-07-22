@@ -152,6 +152,11 @@ impl<
         let inner = self.inner.borrow();
         inner.get(key)
     }
+
+    pub fn invalid(&self, key: &K) {
+        let mut inner = self.inner.borrow_mut();
+        inner.invalid(key);
+    }
 }
 
 impl<
@@ -198,6 +203,25 @@ mod tests {
         let get_value = ctable.get(&key);
         assert!(get_value.is_some());
         assert_eq!(get_value.unwrap(), value);
+    }
+
+    #[test]
+    fn invalidate() {
+        let key = 10;
+        let value = vec![10];
+
+        let ctable = CacheTable::<u32, Vec<u32>, 2, 32>::new();
+
+        ctable.insert(key, value.clone());
+
+        let get_value = ctable.get(&key);
+        assert!(get_value.is_some());
+        assert_eq!(get_value.unwrap(), value);
+
+        ctable.invalid(&key);
+
+        let get_value = ctable.get(&key);
+        assert!(get_value.is_none());
     }
 
     #[test]
