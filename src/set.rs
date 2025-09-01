@@ -23,11 +23,22 @@ use std::simd::{cmp::SimdPartialEq, u8x16};
 pub(crate) const SIMD_SIZE: usize = 16;
 
 #[repr(C)]
+/// The `Set` struct is used to manage a collection of cache entries.
+/// It utilizes SIMD (Single Instruction, Multiple Data) operations to store
+/// and manipulate the cache entries efficiently. Each `Set` contains:
+///
+/// - `fingers`: A 128-bit register divided into sixteen 8-bit slots, each slot
+///   holds a "finger" which is a small hash of the key.
+/// - `valid_mask`: A 16-bit mask that indicates the validity of the corresponding
+///   slots in the `fingers` register.
+/// - `_padding`: A padding field for alignment.
+/// - `next`: An index used for round-robin selection when all slots are filled.
+/// - `pointers`: An array of pointers to the actual cache entries.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Set {
     pub(crate) fingers: u8x16,
     pub(crate) valid_mask: u16,
-    pub(crate) _reserved: u16,
+    pub(crate) _padding: u16,
     pub(crate) next: usize,
     pub(crate) pointers: [usize; SIMD_SIZE],
 }
@@ -38,7 +49,7 @@ impl Default for Set {
             fingers: u8x16::splat(0),
             valid_mask: 0,
             next: 0,
-            _reserved: 0,
+            _padding: 0,
             pointers: [0; SIMD_SIZE],
         }
     }
@@ -57,6 +68,11 @@ const LANE_MASKS: [u8x16; SIMD_SIZE] = {
 };
 
 impl Set {
+    /// Finds the next available slot in the cache.
+    ///
+    /// This function first attempts to find the first empty slot by looking for
+    /// a zero in the `valid_mask`. If no empty slots are found, it resorts to
+    /// round-robin selection using the `next` index.
     #[inline(always)]
     pub fn next_slot(&mut self) -> usize {
         if self.valid_mask != u16::MAX {
@@ -70,6 +86,14 @@ impl Set {
         slot
     }
 
+    /// Sets the finger value at a specified slot in the `fingers` register.
+    ///
+    /// This method uses SIMD operations to efficiently place a value into
+    /// one of the 16 slots in the `fingers` 128-bit register.
+    ///
+    /// # Arguments
+    /// * `slot` - The index of the slot to set.
+    /// * `value` - The 8-bit value to be stored in the slot.
     #[inline(always)]
     pub fn set_finger(&mut self, slot: usize, value: u8) {
         let value_vec = u8x16::splat(value);
@@ -77,6 +101,14 @@ impl Set {
         self.fingers = (self.fingers & !mask) | (value_vec & mask);
     }
 
+    /// Probes the `fingers` register for a given needle value.
+    ///
+    /// This function checks if the given 8-bit needle value exists in the
+    /// `fingers` register. Returns the index of the slot if found, or `None`
+    /// if the needle is not present.
+    ///
+    /// # Arguments
+    /// * `needle` - The 8-bit value to search for in the `fingers` register.
     #[inline(always)]
     pub fn probe(&self, needle: u8) -> Option<usize> {
         let simd_needle = u8x16::splat(needle);
