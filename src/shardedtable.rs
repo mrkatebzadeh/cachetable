@@ -22,6 +22,18 @@
 use crate::shard::Shard;
 use std::hash::Hash;
 
+/// The `ShardedTable` struct is responsible for managing a collection of shards,
+/// each of which represents a partition of the cache. It provides methods to
+/// retrieve individual shards.
+///
+/// # Type Parameters
+/// - `KEY`: The type of the keys used in the cache.
+/// - `VALUE`: The type of the values stored in the cache.
+/// - `LOG_SIZE`: The size of the log in each shard, must be a power of two.
+/// - `SET_SIZE`: The number of sets in each shard, must be a power of two.
+///
+/// The `ShardedTable` simplifies the management of multiple shards and provides
+/// a convenient interface for interacting with them.
 pub struct ShardedTable<KEY, VALUE, const LOG_SIZE: usize, const SET_SIZE: usize> {
     shards: Vec<Shard<KEY, VALUE, LOG_SIZE, SET_SIZE>>,
 }
@@ -33,10 +45,21 @@ impl<
         const SET_SIZE: usize,
     > ShardedTable<KEY, VALUE, LOG_SIZE, SET_SIZE>
 {
+    /// Creates a new `ShardedTable` instance.
+    ///
+    /// # Returns
+    /// A new `ShardedTable` object initialized with default values.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Retrieves a reference to a specific shard within the table.
+    ///
+    /// # Arguments
+    /// * `shard_id` - The index of the shard to retrieve.
+    ///
+    /// # Returns
+    /// A reference to the shard at the specified index.
     pub fn get_shard(&self, shard_id: usize) -> &Shard<KEY, VALUE, LOG_SIZE, SET_SIZE> {
         &self.shards[shard_id]
     }

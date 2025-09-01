@@ -25,6 +25,8 @@ use std::cell::RefCell;
 use std::hash::{Hash, Hasher};
 use wyhash2::WyHash;
 
+/// The `InnerCache` struct is responsible for managing the internal structure of the cache.
+/// It uses sets to organize cache entries and maintains a log for storing key-value pairs.
 struct InnerCache<K, V, const L: usize, const S: usize> {
     sets: [Set; S],
     log: Log<K, V, L>,
@@ -40,9 +42,12 @@ impl<
         const S: usize,
     > InnerCache<K, V, L, S>
 {
+    /// Creates a new `InnerCache` instance with default values.
+    /// Ensures that the number of sets and log size are powers of two, which is
+    /// required for efficient hashing and indexing.
     fn new() -> Self {
-        assert!(S.is_power_of_two(), "S must be a power of two!");
-        assert!(L.is_power_of_two(), "L must be a power of two!");
+        assert!(S.is_power_of_two(), "Set size must be a power of two!");
+        assert!(L.is_power_of_two(), "Log size must be a power of two!");
         let bkt_mask = S - 1;
         let log_mask = L - 1;
         Self {
@@ -54,6 +59,8 @@ impl<
         }
     }
 
+    /// Probes the cache for a given key and returns the set index, fingerprint,
+    /// and slot index if available.
     #[inline]
     fn probe(&self, key: &K) -> (usize, u8, Option<usize>) {
         let mut hasher = WyHash::with_seed(0);
@@ -64,6 +71,8 @@ impl<
         (set, finger, self.sets[set].probe(finger))
     }
 
+    /// Invalidates an entry in the cache associated with the given key.
+    /// If the key is found, it marks the corresponding slot as invalid.
     #[inline]
     fn invalid(&mut self, key: &K) {
         match self.probe(key) {
@@ -74,6 +83,9 @@ impl<
         }
     }
 
+    /// Inserts a log item into the cache, replacing the oldest entry if necessary.
+    /// If the key already exists, it updates the entry; otherwise, it inserts
+    /// the new item and adjusts the log head.
     fn insert(&mut self, item: LogItem<K, V>) {
         let (set, finger, way) = self.probe(&item.key);
 
@@ -99,6 +111,8 @@ impl<
         }
     }
 
+    /// Retrieves a value from the cache for a given key.
+    /// Returns `Some(value)` if the key exists and is valid, `None` otherwise.
     fn get(&self, key: &K) -> Option<V> {
         let (set, _, slot) = self.probe(key);
         match slot {
@@ -114,17 +128,28 @@ impl<
         }
     }
 
+    /// Extracts the set index from the hash key using the set mask.
     #[inline]
     fn extract_set(&self, key: u64) -> usize {
         (key as usize) & self.set_mask
     }
 
+    /// Extracts the fingerprint from the hash key.
     #[inline]
     fn extract_finger(&self, key: u64) -> u8 {
         (key & 0xFF) as u8
     }
 }
 
+/// The `CacheTable` struct serves as the main interface for interacting with the cache.
+/// It provides methods to insert, retrieve, and invalidate entries.
+/// Internally, it manages an `InnerCache` instance wrapped in a RefCell for interior mutability.
+///
+/// # Type Parameters
+/// - `K`: Key type, must implement `Default`, `Hash`, `Eq`, `PartialEq`, and `Clone`.
+/// - `V`: Value type, must implement `Default` and `Clone`.
+/// - `L`: Log size, must be a power of two.
+/// - `B`: Number of sets in the cache, must be a power of two.
 pub struct CacheTable<K, V, const L: usize, const B: usize> {
     inner: RefCell<InnerCache<K, V, L, B>>,
 }
@@ -136,10 +161,21 @@ impl<
         const B: usize,
     > CacheTable<K, V, L, B>
 {
+    /// Creates a new `CacheTable` instance.
+    ///
+    /// # Returns
+    /// A new `CacheTable` object with default values.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Inserts a key-value pair into the cache.
+    ///
+    /// If the key already exists, its value will be updated.
+    ///
+    /// # Arguments
+    /// * `key` - The key to insert.
+    /// * `value` - The value associated with the key.
     pub fn insert(&self, key: K, value: V) {
         let mut item = LogItem::new();
         item.key = key;
@@ -148,11 +184,22 @@ impl<
         inner.insert(item);
     }
 
+    /// Retrieves the value associated with the given key from the cache.
+    ///
+    /// # Arguments
+    /// * `key` - The key to retrieve.
+    ///
+    /// # Returns
+    /// An `Option` containing the value if the key exists and is valid, `None` otherwise.
     pub fn get(&self, key: &K) -> Option<V> {
         let inner = self.inner.borrow();
         inner.get(key)
     }
 
+    /// Invalidates the cache entry associated with the given key.
+    ///
+    /// # Arguments
+    /// * `key` - The key to invalidate.
     pub fn invalid(&self, key: &K) {
         let mut inner = self.inner.borrow_mut();
         inner.invalid(key);
@@ -177,11 +224,13 @@ mod tests {
 
     use super::CacheTable;
 
+    /// Tests the initialization of a CacheTable.
     #[test]
     fn init() {
         let _ = CacheTable::<u32, u32, 2, 32>::new();
     }
 
+    /// Tests the insertion of a key-value pair into the cache.
     #[test]
     fn insert() {
         let key = 10;
@@ -191,6 +240,7 @@ mod tests {
         ctable.insert(key, value);
     }
 
+    /// Tests the retrieval of a value by key from the cache.
     #[test]
     fn get() {
         let key = 10;
@@ -205,6 +255,7 @@ mod tests {
         assert_eq!(get_value.unwrap(), value);
     }
 
+    /// Tests the invalidation of a cache entry.
     #[test]
     fn invalidate() {
         let key = 10;
@@ -224,6 +275,7 @@ mod tests {
         assert!(get_value.is_none());
     }
 
+    /// Tests the retrieval failure of a non-existent key.
     #[test]
     fn get_fail() {
         let mut key = 10;
@@ -238,6 +290,7 @@ mod tests {
         assert!(get_value.is_none());
     }
 
+    /// Tests the wrapping of log entries in the cache.
     #[test]
     fn log_wrap() {
         let mut key = 10;

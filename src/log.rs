@@ -19,15 +19,25 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use crate::kv::LogItem;
 use std::fmt::Display;
 
-use crate::kv::LogItem;
-
+/// A `Log` structure that holds a fixed-size array of log items.
+///
+/// # Type Parameters
+/// - `Key`: The type of the key.
+/// - `Value`: The type of the value.
+/// - `LOG_SIZE`: The fixed size of the log.
+///
+/// The `Log` is used to store `LogItem` instances, each containing a key-value pair.
+/// It provides a default implementation to initialize the log with default log items.
 pub(crate) struct Log<Key, Value, const LOG_SIZE: usize> {
     pub(crate) entries: [LogItem<Key, Value>; LOG_SIZE],
 }
 
 impl<Key: Default, Value: Default, const LOG_SIZE: usize> Default for Log<Key, Value, LOG_SIZE> {
+    /// Provides a default implementation for `Log`.
+    /// Initializes the log with default log items.
     fn default() -> Self {
         Self {
             entries: std::array::from_fn(|_| LogItem::default()),
@@ -36,6 +46,7 @@ impl<Key: Default, Value: Default, const LOG_SIZE: usize> Default for Log<Key, V
 }
 
 impl<Key: Display, Value: Display, const LOG_SIZE: usize> Display for Log<Key, Value, LOG_SIZE> {
+    /// Formats the `Log` as a string, with each `LogItem` separated by a newline.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,

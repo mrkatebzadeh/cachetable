@@ -21,6 +21,11 @@
 
 use std::fmt::Display;
 
+/// A `LogItem` structure that holds a key-value pair.
+///
+/// # Type Parameters
+/// - `K`: The type of the key.
+/// - `V`: The type of the value.
 #[derive(Clone)]
 #[repr(align(64))]
 pub(crate) struct LogItem<K, V> {
@@ -29,12 +34,15 @@ pub(crate) struct LogItem<K, V> {
 }
 
 impl<K: Default, V: Default> LogItem<K, V> {
+    /// Creates a new `LogItem` with default key and value.
     pub(crate) fn new() -> Self {
         Self::default()
     }
 }
 
 impl<K: Default, V: Default> Default for LogItem<K, V> {
+    /// Provides a default implementation for `LogItem`.
+    /// Returns a `LogItem` with default key and value.
     fn default() -> Self {
         Self {
             value: V::default(),
@@ -44,6 +52,7 @@ impl<K: Default, V: Default> Default for LogItem<K, V> {
 }
 
 impl<K: Display, V: Display> Display for LogItem<K, V> {
+    /// Formats the `LogItem` as a string in the form "(key, value)".
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({}, {})", self.key, self.value)
     }
