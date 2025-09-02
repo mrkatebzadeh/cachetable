@@ -123,5 +123,11 @@ impl<
     }
 }
 
+impl<KEY: Default + Hash + Eq + PartialEq + Clone, VALUE: Default + Clone, const LOG_SIZE: usize, const SET_SIZE: usize> Default for Shard<KEY, VALUE, LOG_SIZE, SET_SIZE> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 
 /* shardedtable.rs ends here */
