@@ -6,7 +6,7 @@
 
 To include `cachetable` in your project, add it to your `Cargo.toml` from the GitHub repository:
 
-``` toml
+```toml
 [dependencies]
 cachetable = { git = "https://github.com/mrkatebzadeh/cachetable.git" }
 ```
@@ -15,7 +15,7 @@ cachetable = { git = "https://github.com/mrkatebzadeh/cachetable.git" }
 
 Here’s a simple example demonstrating how to use the `cachetable` crate for a key-value storage:
 
-``` rust
+```rust
 use cachetable::CacheTable;
 
 fn main() {
@@ -60,6 +60,11 @@ fn main() {
 
 The following plots showcase the performance benchmarks of Cachetable under different workloads:
 
+### System Specifications
+
+- **CPU**: Intel Xeon Silver 4314 x2
+- **RAM**: 128 GB
+
 ### Throughput
 
 - **Workload A (50% read, 50% write)**
@@ -76,9 +81,10 @@ The following plots showcase the performance benchmarks of Cachetable under diff
 
 ### Latency
 
-  ![Latency](plots/latency_all.jpg)
+![Latency](plots/latency_all.jpg)
 
 ## TODO
+
 - [x] Implement retrieval of a key-value pair from the cache table.
 - [x] Implement lock-free concurent access.
 - [ ] Implement different policies for eviction.
