@@ -26,7 +26,7 @@ use criterion::{criterion_group, criterion_main, Criterion};
 
 pub fn put_bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("Put");
-    group.bench_function("CacheTable", |b| {
+    group.bench_function("Cachetable", |b| {
         let cachetable = CacheTable::<u64, u64, 4, 32>::new();
         b.iter(|| {
             let key = black_box(10);
@@ -42,11 +42,36 @@ pub fn put_bench(c: &mut Criterion) {
             hashtable.insert(key, value);
         })
     });
+    group.bench_function("Dashmap", |b| {
+        let mut hashtable = dashmap::DashMap::<u64, u64>::new();
+        b.iter(|| {
+            let key = black_box(10);
+            let value = black_box(10);
+            hashtable.insert(key, value);
+        })
+    });
+    group.bench_function("Papaya", |b| {
+        let hashtable = papaya::HashMap::<u64, u64>::new();
+        let hashtable = hashtable.pin();
+        b.iter(|| {
+            let key = black_box(10);
+            let value = black_box(10);
+            hashtable.insert(key, value);
+        })
+    });
+    group.bench_function("Leapfrog", |b| {
+        let mut hashtable = leapfrog::HashMap::<u64, u64>::new();
+        b.iter(|| {
+            let key = black_box(10);
+            let value = black_box(10);
+            hashtable.insert(key, value);
+        })
+    });
 }
 
 pub fn get_bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("Get");
-    group.bench_function("CacheTable", |b| {
+    group.bench_function("Cachetable", |b| {
         let cachetable = CacheTable::<u64, u64, 4, 32>::new();
         let key = black_box(10);
         let value = black_box(10);
@@ -57,6 +82,34 @@ pub fn get_bench(c: &mut Criterion) {
     });
     group.bench_function("HashTable", |b| {
         let mut hashtable = HashMap::<u64, u64>::new();
+        let key = black_box(10);
+        let value = black_box(10);
+        hashtable.insert(key, value);
+        b.iter(|| {
+            black_box(hashtable.get(&key));
+        })
+    });
+    group.bench_function("Dashmap", |b| {
+        let mut hashtable = dashmap::DashMap::<u64, u64>::new();
+        let key = black_box(10);
+        let value = black_box(10);
+        hashtable.insert(key, value);
+        b.iter(|| {
+            black_box(hashtable.get(&key));
+        })
+    });
+    group.bench_function("Papaya", |b| {
+        let hashtable = papaya::HashMap::<u64, u64>::new();
+        let hashtable = hashtable.pin();
+        let key = black_box(10);
+        let value = black_box(10);
+        hashtable.insert(key, value);
+        b.iter(|| {
+            black_box(hashtable.get(&key));
+        })
+    });
+    group.bench_function("Leapfrog", |b| {
+        let mut hashtable = leapfrog::HashMap::<u64, u64>::new();
         let key = black_box(10);
         let value = black_box(10);
         hashtable.insert(key, value);
