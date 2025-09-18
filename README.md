@@ -1,4 +1,4 @@
-# CacheTable
+# Cachetable
 
 `cachetable` is a high-performance lossy hash table designed for low-latency workloads.
 
@@ -55,6 +55,28 @@ fn main() {
     }
 }
 ```
+
+## Benchmark Results
+
+The following plots showcase the performance benchmarks of Cachetable under different workloads:
+
+### Throughput
+
+- **Workload A (50% read, 50% write)**
+
+  ![Throughput Workload A](plots/throughput_workload_A.jpg)
+
+- **Workload B (95% read, 5% write)**
+
+  ![Throughput Workload B](plots/throughput_workload_B.jpg)
+
+- **Workload C (100% read)**
+
+  ![Throughput Workload C](plots/throughput_workload_C.jpg)
+
+### Latency
+
+  ![Latency](plots/latency_all.jpg)
 
 ## TODO
 - [x] Implement retrieval of a key-value pair from the cache table.
