@@ -28,7 +28,6 @@ use std::sync::{Arc, Mutex};
 use std::{thread, u32};
 
 use cachetable::ShardedTable;
-use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone, Copy)]
@@ -81,6 +80,41 @@ pub fn workload_a(c: &mut Criterion) {
     let mut group = c.benchmark_group("Workload A");
 
     for threads in [1, 2, 4, 8, 16, 32] {
+        group.throughput(Throughput::Elements((NUM_OPS * threads) as u64));
+        group.bench_function(format!("Papaya_{}t", threads), |b| {
+            b.iter(|| {
+                let table = Arc::new(papaya::HashMap::<u64, Object>::new());
+
+                {
+                    for i in 0..KEY_SPACE {
+                        table.pin().insert(i, Object::new(i as u32));
+                    }
+                }
+
+                let handles: Vec<_> = (0..threads)
+                    .map(|tid| {
+                        let table = Arc::clone(&table);
+                        thread::spawn(move || {
+                            let mut rng = StdRng::seed_from_u64(42 + tid as u64);
+                            for _ in 0..NUM_OPS {
+                                let op: f64 = rng.random();
+                                let key = rng.random_range(0..KEY_SPACE);
+                                if op < 0.5 {
+                                    black_box(table.pin().get(&key));
+                                } else {
+                                    table.pin().insert(key, Object::new(key as u32));
+                                }
+                            }
+                        })
+                    })
+                    .collect();
+
+                for handle in handles {
+                    handle.join().unwrap();
+                }
+            });
+        });
+
         group.bench_function(format!("Leapfrog_{}t", threads), |b| {
             b.iter(|| {
                 let table = Arc::new(leapfrog::LeapMap::<u64, Object>::new());
@@ -114,8 +148,6 @@ pub fn workload_a(c: &mut Criterion) {
                 }
             });
         });
-
-        group.throughput(Throughput::Elements((NUM_OPS * threads) as u64));
 
         group.bench_function(format!("ShardedTable_{}t", threads), |b| {
             b.iter(|| {
@@ -193,6 +225,39 @@ pub fn workload_b(c: &mut Criterion) {
 
     for threads in [1, 2, 4, 8, 16, 32] {
         group.throughput(Throughput::Elements((NUM_OPS * threads) as u64));
+        group.bench_function(format!("Papaya_{}t", threads), |b| {
+            b.iter(|| {
+                let table = Arc::new(papaya::HashMap::<u64, Object>::new());
+
+                {
+                    for i in 0..KEY_SPACE {
+                        table.pin().insert(i, Object::new(i as u32));
+                    }
+                }
+
+                let handles: Vec<_> = (0..threads)
+                    .map(|tid| {
+                        let table = Arc::clone(&table);
+                        thread::spawn(move || {
+                            let mut rng = StdRng::seed_from_u64(42 + tid as u64);
+                            for _ in 0..NUM_OPS {
+                                let op: f64 = rng.random();
+                                let key = rng.random_range(0..KEY_SPACE);
+                                if op < 0.95 {
+                                    black_box(table.pin().get(&key));
+                                } else {
+                                    table.pin().insert(key, Object::new(key as u32));
+                                }
+                            }
+                        })
+                    })
+                    .collect();
+
+                for handle in handles {
+                    handle.join().unwrap();
+                }
+            });
+        });
         group.bench_function(format!("Leapfrog_{}t", threads), |b| {
             b.iter(|| {
                 let table = Arc::new(leapfrog::LeapMap::<u64, Object>::new());
@@ -302,6 +367,34 @@ pub fn workload_c(c: &mut Criterion) {
 
     for threads in [1, 2, 4, 8, 16, 32] {
         group.throughput(Throughput::Elements((NUM_OPS * threads) as u64));
+        group.bench_function(format!("Papaya_{}t", threads), |b| {
+            b.iter(|| {
+                let table = Arc::new(papaya::HashMap::<u64, Object>::new());
+
+                {
+                    for i in 0..KEY_SPACE {
+                        table.pin().insert(i, Object::new(i as u32));
+                    }
+                }
+
+                let handles: Vec<_> = (0..threads)
+                    .map(|tid| {
+                        let table: _ = Arc::clone(&table);
+                        thread::spawn(move || {
+                            let mut rng = StdRng::seed_from_u64(42 + tid as u64);
+                            for _ in 0..NUM_OPS {
+                                let key = rng.random_range(0..KEY_SPACE);
+                                black_box(table.pin().get(&key));
+                            }
+                        })
+                    })
+                    .collect();
+
+                for handle in handles {
+                    handle.join().unwrap();
+                }
+            });
+        });
         group.bench_function(format!("Leapfrog_{}t", threads), |b| {
             b.iter(|| {
                 let table = Arc::new(leapfrog::LeapMap::<u64, Object>::new());

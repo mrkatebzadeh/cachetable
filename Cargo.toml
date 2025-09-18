@@ -10,12 +10,11 @@ wyhash2 = "0.2.1"
 criterion = { version = "0.6", features = ["html_reports"] }
 rand = "0.9.1"
 leapfrog = "0.3.2"
-
+papaya = "0.2.3"
 
 [[bench]]
 name = "access"
 harness = false
-
 
 [[bench]]
 name = "ycsb"
